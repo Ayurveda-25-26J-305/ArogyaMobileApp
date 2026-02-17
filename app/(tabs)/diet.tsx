@@ -1,68 +1,71 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from "react";
+import { View, Text, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function DietScreen() {
   const features = [
-    'Dosha-balanced daily meal plans',
-    'Seasonal food recommendations',
-    'Foods to avoid per condition',
-    'Weekly diet schedules',
-    'Digestion & mood-based adjustments',
+    "Dosha-balanced daily meal plans",
+    "Seasonal food recommendations",
+    "Foods to avoid per condition",
+    "Weekly diet schedules",
+    "Digestion & mood-based adjustments",
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.iconWrap}>
+    <ScrollView
+      className="flex-1 bg-[#f1f8e9]"
+      contentContainerStyle={{
+        alignItems: "center",
+        padding: 24,
+        paddingBottom: 40,
+      }}
+    >
+      <View className="w-[120px] h-[120px] rounded-full bg-[#e8f5e9] items-center justify-center mb-5">
         <Ionicons name="restaurant" size={80} color="#6a8759" />
       </View>
-      <Text style={styles.title}>Diet Planning</Text>
-      <Text style={styles.subtitle}>
-        Personalized Ayurvedic meal plans considering disease,
-        dosha balance, season, and individual preferences.
+      <Text className="text-2xl font-bold text-[#1b5e20] text-center mb-3">
+        Diet Planning
+      </Text>
+      <Text className="text-sm text-gray-600 text-center leading-6 mb-6">
+        Personalized Ayurvedic meal plans considering disease, dosha balance,
+        season, and individual preferences.
       </Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Coming Features:</Text>
+      <View className="w-full bg-white rounded-xl p-4 mb-4 shadow-sm">
+        <Text className="text-base font-semibold text-[#1b5e20] mb-3">
+          Coming Features:
+        </Text>
         {features.map((f, i) => (
-          <View key={i} style={styles.featureRow}>
-            <Ionicons name="checkmark-circle-outline" size={18} color="#6a8759" />
-            <Text style={styles.featureText}>{f}</Text>
+          <View key={i} className="flex-row items-center gap-2.5 mb-2.5">
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={18}
+              color="#6a8759"
+            />
+            <Text className="text-sm text-gray-700">{f}</Text>
           </View>
         ))}
       </View>
 
-      <View style={styles.devCard}>
+      <View className="w-full bg-[#e8f5e9] rounded-xl p-4 flex-row items-center gap-3 mb-4 border-l-4 border-ayurveda-primary">
         <Ionicons name="person-circle" size={36} color="#2d5016" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.devName}>Dias W A N M</Text>
-          <Text style={styles.devId}>IT22899910</Text>
-          <Text style={styles.devModule}>Ayurvedic Dietary Recommendation Module</Text>
+        <View className="flex-1">
+          <Text className="text-[15px] font-bold text-[#1b5e20]">
+            Dias W A N M
+          </Text>
+          <Text className="text-xs text-gray-500">IT22899910</Text>
+          <Text className="text-[13px] text-ayurveda-primary mt-0.5">
+            Ayurvedic Dietary Recommendation Module
+          </Text>
         </View>
       </View>
 
-      <View style={styles.badge}>
+      <View className="flex-row items-center bg-[#fff3cd] px-4 py-2.5 rounded-full gap-2">
         <Ionicons name="construct" size={16} color="#856404" />
-        <Text style={styles.badgeText}>Integration in Progress</Text>
+        <Text className="text-[13px] text-[#856404] font-semibold">
+          Integration in Progress
+        </Text>
       </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f8e9' },
-  content: { alignItems: 'center', padding: 24, paddingBottom: 40 },
-  iconWrap: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#e8f5e9', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1b5e20', textAlign: 'center', marginBottom: 12 },
-  subtitle: { fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
-  card: { width: '100%', backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 16, elevation: 2 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#1b5e20', marginBottom: 12 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  featureText: { fontSize: 14, color: '#444' },
-  devCard: { width: '100%', backgroundColor: '#e8f5e9', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#2d5016' },
-  devName: { fontSize: 15, fontWeight: '700', color: '#1b5e20' },
-  devId: { fontSize: 12, color: '#777' },
-  devModule: { fontSize: 13, color: '#2d5016', marginTop: 2 },
-  badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff3cd', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 8 },
-  badgeText: { fontSize: 13, color: '#856404', fontWeight: '600' },
-});

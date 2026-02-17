@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../utils/theme';
+import React from "react";
+import { View, Text } from "react-native";
+import { theme } from "../utils/theme";
 
 interface DoshaChartProps {
   prakriti: {
@@ -14,77 +14,44 @@ export default function DoshaChart({ prakriti }: DoshaChartProps) {
   if (!prakriti) return null;
 
   const doshas = [
-    { 
-      name: 'Vata', 
-      value: parseFloat(prakriti.vata as string) || 0, 
-      color: theme.colors.dosha.vata 
+    {
+      name: "Vata",
+      value: parseFloat(prakriti.vata as string) || 0,
+      color: theme.colors.dosha.vata,
     },
-    { 
-      name: 'Pitta', 
-      value: parseFloat(prakriti.pitta as string) || 0, 
-      color: theme.colors.dosha.pitta 
+    {
+      name: "Pitta",
+      value: parseFloat(prakriti.pitta as string) || 0,
+      color: theme.colors.dosha.pitta,
     },
-    { 
-      name: 'Kapha', 
-      value: parseFloat(prakriti.kapha as string) || 0, 
-      color: theme.colors.dosha.kapha 
+    {
+      name: "Kapha",
+      value: parseFloat(prakriti.kapha as string) || 0,
+      color: theme.colors.dosha.kapha,
     },
   ];
 
   return (
-    <View style={styles.container}>
+    <View className="gap-3">
       {doshas.map((dosha, index) => (
-        <View key={index} style={styles.doshaRow}>
-          <Text style={styles.doshaName}>{dosha.name}</Text>
-          <View style={styles.barContainer}>
+        <View key={index} className="flex-row items-center gap-3">
+          <Text className="w-[60px] text-sm font-semibold text-[#1b5e20]">
+            {dosha.name}
+          </Text>
+          <View className="flex-1 h-6 bg-gray-200 rounded-xl overflow-hidden">
             <View
-              style={[
-                styles.bar,
-                {
-                  width: `${dosha.value * 100}%`,
-                  backgroundColor: dosha.color,
-                },
-              ]}
+              className="h-full rounded-xl"
+              style={{
+                width: `${dosha.value * 100}%`,
+                backgroundColor: dosha.color,
+              }}
             />
           </View>
-          <Text style={styles.doshaValue}>{(dosha.value * 100).toFixed(0)}%</Text>
+          <Text className="w-[45px] text-sm font-semibold text-right text-[#33691e]">
+            {(dosha.value * 100).toFixed(0)}%
+          </Text>
         </View>
       ))}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: 12,
-  },
-  doshaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  doshaName: {
-    width: 60,
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  barContainer: {
-    flex: 1,
-    height: 24,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  bar: {
-    height: '100%',
-    borderRadius: 12,
-  },
-  doshaValue: {
-    width: 45,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'right',
-    color: theme.colors.text.secondary,
-  },
-});

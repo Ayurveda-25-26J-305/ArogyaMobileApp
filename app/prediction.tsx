@@ -1,25 +1,35 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
-  View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, ActivityIndicator, Alert,
-  TextInput, Modal, FlatList,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { diseaseApi, storage } from '../services/api';
-import DoshaChart from '../components/DoshaChart';
-import DiseaseCard from '../components/DiseaseCard';
-import { SYMPTOMS, DISEASE_INFO } from '../utils/constants';
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+  Modal,
+  FlatList,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { diseaseApi, storage } from "../services/api";
+import DoshaChart from "../components/DoshaChart";
+import DiseaseCard from "../components/DiseaseCard";
+import { SYMPTOMS, DISEASE_INFO } from "../utils/constants";
 
 export default function PredictionScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const prakriti = params.prakriti ? JSON.parse(params.prakriti as string) : null;
+  const prakriti = params.prakriti
+    ? JSON.parse(params.prakriti as string)
+    : null;
 
-  const [age, setAge] = useState('30');
-  const [gender, setGender] = useState<'Male' | 'Female'>('Male');
-  const [symptom, setSymptom] = useState('');
-  const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('moderate');
+  const [age, setAge] = useState("30");
+  const [gender, setGender] = useState<"Male" | "Female">("Male");
+  const [symptom, setSymptom] = useState("");
+  const [severity, setSeverity] = useState<"mild" | "moderate" | "severe">(
+    "moderate",
+  );
   const [duration, setDuration] = useState(7);
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState<any>(null);
@@ -27,35 +37,38 @@ export default function PredictionScreen() {
 
   // Symptom modal state
   const [modalVisible, setModalVisible] = useState(false);
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
 
   const filteredSymptoms = useMemo(() => {
     if (!searchText.trim()) return SYMPTOMS;
-    return SYMPTOMS.filter(s =>
-      s.toLowerCase().includes(searchText.toLowerCase())
+    return SYMPTOMS.filter((s) =>
+      s.toLowerCase().includes(searchText.toLowerCase()),
     );
   }, [searchText]);
 
   const handleSelectSymptom = (s: string) => {
     setSymptom(s);
     setModalVisible(false);
-    setSearchText('');
+    setSearchText("");
   };
 
   const handlePredict = async () => {
-    if (!symptom) { Alert.alert('Select Symptom', 'Please select a primary symptom first.'); return; }
+    if (!symptom) {
+      Alert.alert("Select Symptom", "Please select a primary symptom first.");
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
         age: parseInt(age) || 30,
         gender,
         symptom,
-        severity: severity === 'mild' ? 0 : severity === 'moderate' ? 1 : 2,
+        severity: severity === "mild" ? 0 : severity === "moderate" ? 1 : 2,
         duration_days: duration,
-        vata_score: parseFloat(prakriti?.vata || '0.33'),
-        pitta_score: parseFloat(prakriti?.pitta || '0.33'),
-        kapha_score: parseFloat(prakriti?.kapha || '0.33'),
-        prakriti: prakriti?.dominant || 'pitta',
+        vata_score: parseFloat(prakriti?.vata || "0.33"),
+        pitta_score: parseFloat(prakriti?.pitta || "0.33"),
+        kapha_score: parseFloat(prakriti?.kapha || "0.33"),
+        prakriti: prakriti?.dominant || "pitta",
       };
       const result = await diseaseApi.predict(payload);
       setPrediction(result);
@@ -64,12 +77,12 @@ export default function PredictionScreen() {
     } catch (e: any) {
       // Demo mode when API not available
       const demo = {
-        predicted_disease: 'Gastritis',
+        predicted_disease: "Gastritis",
         confidence: 0.875,
         top_3: [
-          { disease: 'Gastritis', probability: 0.875 },
-          { disease: 'Diabetes', probability: 0.062 },
-          { disease: 'Arthritis', probability: 0.031 },
+          { disease: "Gastritis", probability: 0.875 },
+          { disease: "Diabetes", probability: 0.062 },
+          { disease: "Arthritis", probability: 0.031 },
         ],
       };
       setPrediction(demo);
@@ -81,60 +94,93 @@ export default function PredictionScreen() {
 
   if (!prakriti) {
     return (
-      <View style={styles.emptyContainer}>
+      <View className="flex-1 justify-center items-center p-10 bg-[#f1f8e9]">
         <Ionicons name="body-outline" size={80} color="#ccc" />
-        <Text style={styles.emptyTitle}>Prakriti Required</Text>
-        <Text style={styles.emptyText}>Complete your Prakriti assessment first</Text>
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/prakriti' as any)}>
-          <Text style={styles.primaryBtnText}>Start Assessment</Text>
+        <Text className="text-xl font-semibold text-[#1b5e20] mt-4 mb-2">
+          Prakriti Required
+        </Text>
+        <Text className="text-sm text-gray-600 text-center mb-6">
+          Complete your Prakriti assessment first
+        </Text>
+        <TouchableOpacity
+          className="bg-ayur veda-primary px-7 py-3.5 rounded-xl"
+          onPress={() => router.push("/prakriti" as any)}
+        >
+          <Text className="text-white text-[15px] font-semibold">
+            Start Assessment
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const diseaseInfo = prediction ? DISEASE_INFO[prediction.predicted_disease] : null;
+  const diseaseInfo = prediction
+    ? DISEASE_INFO[prediction.predicted_disease]
+    : null;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-
+    <ScrollView
+      className="flex-1 bg-[#f1f8e9]"
+      showsVerticalScrollIndicator={false}
+    >
       {/* Prakriti Summary */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Your Constitution</Text>
+      <View className="bg-white m-4 mb-0 p-4 rounded-xl shadow-sm">
+        <Text className="text-base font-semibold text-[#1b5e20] mb-3.5">
+          Your Constitution
+        </Text>
         <DoshaChart prakriti={prakriti} />
-        <View style={styles.dominantRow}>
-          <Text style={styles.dominantLabel}>Dominant Dosha:</Text>
-          <Text style={styles.dominantValue}>{prakriti.dominant?.toUpperCase()}</Text>
+        <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-gray-100">
+          <Text className="text-sm text-gray-600">Dominant Dosha:</Text>
+          <Text className="text-base font-bold text-ayurveda-primary">
+            {prakriti.dominant?.toUpperCase()}
+          </Text>
         </View>
       </View>
 
       {/* Age & Gender */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Patient Details</Text>
-        <View style={styles.patientRow}>
-          <View style={styles.patientField}>
-            <Text style={styles.fieldLabel}>Age</Text>
+      <View className="bg-white m-4 mb-0 p-4 rounded-xl shadow-sm">
+        <Text className="text-base font-semibold text-[#1b5e20] mb-3.5">
+          Patient Details
+        </Text>
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <Text className="text-xs font-semibold text-gray-600 uppercase mb-1.5">
+              Age
+            </Text>
             <TextInput
-              style={styles.ageInput}
+              className="border-2 border-gray-300 rounded-xl px-3.5 py-3 text-base text-gray-800 bg-gray-50 text-center"
               value={age}
-              onChangeText={(v) => setAge(v.replace(/[^0-9]/g, ''))}
+              onChangeText={(v) => setAge(v.replace(/[^0-9]/g, ""))}
               keyboardType="numeric"
               maxLength={3}
               placeholder="30"
               placeholderTextColor="#aaa"
             />
           </View>
-          <View style={[styles.patientField, { flex: 2 }]}>
-            <Text style={styles.fieldLabel}>Gender</Text>
-            <View style={styles.genderRow}>
-              {(['Male', 'Female'] as const).map((g) => (
+          <View className="flex-[2]">
+            <Text className="text-xs font-semibold text-gray-600 uppercase mb-1.5">
+              Gender
+            </Text>
+            <View className="flex-row gap-2">
+              {(["Male", "Female"] as const).map((g) => (
                 <TouchableOpacity
                   key={g}
-                  style={[styles.genderBtn, gender === g && styles.genderBtnActive]}
+                  className={`flex-1 items-center py-3 rounded-xl border-2 ${
+                    gender === g
+                      ? "border-ayurveda-primary bg-[#f1f8e9]"
+                      : "border-gray-300 bg-gray-50"
+                  }`}
                   onPress={() => setGender(g)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>
-                    {g === 'Male' ? '♂ Male' : '♀ Female'}
+                  <Text
+                    className={`text-[13px] font-medium ${
+                      gender === g
+                        ? "text-ayurveda-primary font-bold"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {g === "Male" ? "♂ Male" : "♀ Female"}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -144,52 +190,92 @@ export default function PredictionScreen() {
       </View>
 
       {/* Symptom Selector */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Primary Symptom</Text>
+      <View className="bg-white m-4 mb-0 p-4 rounded-xl shadow-sm">
+        <Text className="text-base font-semibold text-[#1b5e20] mb-3.5">
+          Primary Symptom
+        </Text>
         <TouchableOpacity
-          style={[styles.symptomSelector, symptom ? styles.symptomSelectorSelected : null]}
+          className={`flex-row items-center justify-between border-2 rounded-xl p-3.5 ${
+            symptom
+              ? "border-ayurveda-primary bg-[#f1f8e9]"
+              : "border-gray-300 bg-gray-50"
+          }`}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.7}
         >
           {symptom ? (
-            <View style={styles.selectorInner}>
+            <View className="flex-row items-center gap-2.5 flex-1">
               <Ionicons name="checkmark-circle" size={20} color="#4caf50" />
-              <Text style={styles.symptomSelectedText} numberOfLines={2}>{symptom}</Text>
+              <Text
+                className="text-sm text-[#1b5e20] font-medium flex-1"
+                numberOfLines={2}
+              >
+                {symptom}
+              </Text>
             </View>
           ) : (
-            <View style={styles.selectorInner}>
+            <View className="flex-row items-center gap-2.5 flex-1">
               <Ionicons name="search" size={20} color="#999" />
-              <Text style={styles.symptomPlaceholder}>Tap to select a symptom...</Text>
+              <Text className="text-[15px] text-gray-400">
+                Tap to select a symptom...
+              </Text>
             </View>
           )}
-          <Ionicons name="chevron-down" size={20} color={symptom ? '#2d5016' : '#999'} />
+          <Ionicons
+            name="chevron-down"
+            size={20}
+            color={symptom ? "#2d5016" : "#999"}
+          />
         </TouchableOpacity>
 
         {symptom && (
-          <TouchableOpacity style={styles.clearBtn} onPress={() => setSymptom('')}>
+          <TouchableOpacity
+            className="flex-row items-center gap-1 mt-2"
+            onPress={() => setSymptom("")}
+          >
             <Ionicons name="close-circle" size={14} color="#999" />
-            <Text style={styles.clearBtnText}>Clear selection</Text>
+            <Text className="text-xs text-gray-500">Clear selection</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Severity */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Severity Level</Text>
-        <View style={styles.severityRow}>
-          {([
-            { level: 'mild' as const, icon: 'sunny', label: 'Mild' },
-            { level: 'moderate' as const, icon: 'partly-sunny', label: 'Moderate' },
-            { level: 'severe' as const, icon: 'thunderstorm', label: 'Severe' },
-          ]).map(({ level, icon, label }) => (
+      <View className="bg-white m-4 mb-0 p-4 rounded-xl shadow-sm">
+        <Text className="text-base font-semibold text-[#1b5e20] mb-3.5">
+          Severity Level
+        </Text>
+        <View className="flex-row gap-2.5">
+          {[
+            { level: "mild" as const, icon: "sunny", label: "Mild" },
+            {
+              level: "moderate" as const,
+              icon: "partly-sunny",
+              label: "Moderate",
+            },
+            { level: "severe" as const, icon: "thunderstorm", label: "Severe" },
+          ].map(({ level, icon, label }) => (
             <TouchableOpacity
               key={level}
-              style={[styles.severityBtn, severity === level && styles.severityActive]}
+              className={`flex-1 items-center p-3.5 rounded-xl border-2 gap-1.5 ${
+                severity === level
+                  ? "border-ayurveda-primary bg-[#f1f8e9]"
+                  : "border-gray-300 bg-gray-50"
+              }`}
               onPress={() => setSeverity(level)}
               activeOpacity={0.7}
             >
-              <Ionicons name={icon as any} size={24} color={severity === level ? '#2d5016' : '#bbb'} />
-              <Text style={[styles.severityText, severity === level && styles.severityTextActive]}>
+              <Ionicons
+                name={icon as any}
+                size={24}
+                color={severity === level ? "#2d5016" : "#bbb"}
+              />
+              <Text
+                className={`text-xs font-medium ${
+                  severity === level
+                    ? "text-ayurveda-primary font-bold"
+                    : "text-gray-400"
+                }`}
+              >
                 {label}
               </Text>
             </TouchableOpacity>
@@ -198,18 +284,36 @@ export default function PredictionScreen() {
       </View>
 
       {/* Duration */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Duration (Days)</Text>
-        <View style={styles.durationRow}>
+      <View className="bg-white m-4 mb-0 p-4 rounded-xl shadow-sm">
+        <Text className="text-base font-semibold text-[#1b5e20] mb-3.5">
+          Duration (Days)
+        </Text>
+        <View className="flex-row gap-2.5">
           {[3, 7, 14, 30].map((d) => (
             <TouchableOpacity
               key={d}
-              style={[styles.durationBtn, duration === d && styles.durationActive]}
+              className={`flex-1 items-center py-3.5 rounded-xl border-2 ${
+                duration === d
+                  ? "border-ayurveda-primary bg-[#f1f8e9]"
+                  : "border-gray-300 bg-gray-50"
+              }`}
               onPress={() => setDuration(d)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.durationNum, duration === d && styles.durationNumActive]}>{d}</Text>
-              <Text style={[styles.durationSub, duration === d && styles.durationSubActive]}>days</Text>
+              <Text
+                className={`text-lg font-bold ${
+                  duration === d ? "text-ayurveda-primary" : "text-gray-400"
+                }`}
+              >
+                {d}
+              </Text>
+              <Text
+                className={`text-[11px] ${
+                  duration === d ? "text-ayurveda-secondary" : "text-gray-300"
+                }`}
+              >
+                days
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -217,24 +321,31 @@ export default function PredictionScreen() {
 
       {/* Predict Button */}
       <TouchableOpacity
-        style={[styles.predictBtn, (!symptom || loading) && styles.predictBtnDisabled]}
+        className={`m-4 p-4 rounded-xl flex-row items-center justify-center gap-2.5 shadow-md ${
+          !symptom || loading ? "bg-gray-400" : "bg-ayurveda-primary"
+        }`}
         onPress={handlePredict}
         disabled={!symptom || loading}
         activeOpacity={0.8}
       >
-        {loading
-          ? <ActivityIndicator color="#fff" size="small" />
-          : <>
-              <Ionicons name="analytics" size={24} color="#fff" />
-              <Text style={styles.predictBtnText}>Predict Disease</Text>
-            </>
-        }
+        {loading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <>
+            <Ionicons name="analytics" size={24} color="#fff" />
+            <Text className="text-white text-[17px] font-bold">
+              Predict Disease
+            </Text>
+          </>
+        )}
       </TouchableOpacity>
 
       {/* Results */}
       {prediction && (
-        <View style={styles.resultsSection}>
-          <Text style={styles.resultsTitle}>🎯 Prediction Results</Text>
+        <View className="m-4">
+          <Text className="text-xl font-bold text-[#1b5e20] mb-3.5">
+            🎯 Prediction Results
+          </Text>
           <DiseaseCard
             disease={prediction.predicted_disease}
             confidence={prediction.confidence}
@@ -242,52 +353,73 @@ export default function PredictionScreen() {
           />
 
           <TouchableOpacity
-            style={styles.infoToggle}
+            className="flex-row items-center justify-between bg-white p-3.5 rounded-xl mt-3 shadow-sm"
             onPress={() => setShowInfo(!showInfo)}
             activeOpacity={0.7}
           >
-            <Text style={styles.infoToggleText}>
-              {showInfo ? 'Hide' : 'Show'} Disease Information
+            <Text className="text-[15px] font-semibold text-ayurveda-primary">
+              {showInfo ? "Hide" : "Show"} Disease Information
             </Text>
-            <Ionicons name={showInfo ? 'chevron-up' : 'chevron-down'} size={20} color="#2d5016" />
+            <Ionicons
+              name={showInfo ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#2d5016"
+            />
           </TouchableOpacity>
 
           {showInfo && diseaseInfo && (
-            <View style={styles.diseaseInfoCard}>
-              <Text style={styles.diseaseTitle}>{prediction.predicted_disease}</Text>
-              <Text style={styles.diseaseSanskrit}>({diseaseInfo.sanskrit})</Text>
+            <View className="bg-white rounded-xl p-4 mt-2.5 shadow-sm">
+              <Text className="text-xl font-bold text-[#1b5e20]">
+                {prediction.predicted_disease}
+              </Text>
+              <Text className="text-sm text-gray-500 italic mb-3.5">
+                ({diseaseInfo.sanskrit})
+              </Text>
 
               {[
-                { label: 'Description', value: diseaseInfo.description },
-                { label: 'Dosha Involvement', value: diseaseInfo.dosha },
-                { label: 'Common Symptoms', value: diseaseInfo.symptoms },
+                { label: "Description", value: diseaseInfo.description },
+                { label: "Dosha Involvement", value: diseaseInfo.dosha },
+                { label: "Common Symptoms", value: diseaseInfo.symptoms },
               ].map((item, i) => (
-                <View key={i} style={styles.infoBlock}>
-                  <Text style={styles.infoLabel}>{item.label}</Text>
-                  <Text style={styles.infoValue}>{item.value}</Text>
+                <View key={i} className="mb-3">
+                  <Text className="text-[11px] font-bold text-gray-500 uppercase mb-0.5">
+                    {item.label}
+                  </Text>
+                  <Text className="text-sm text-gray-800 leading-5">
+                    {item.value}
+                  </Text>
                 </View>
               ))}
 
-              <Text style={styles.recHeader}>Lifestyle Recommendations</Text>
+              <Text className="text-[15px] font-bold text-[#1b5e20] mt-3.5 mb-2">
+                Lifestyle Recommendations
+              </Text>
               {diseaseInfo.lifestyle.map((item: string, i: number) => (
-                <View key={i} style={styles.recRow}>
+                <View key={i} className="flex-row items-start gap-2 mb-2">
                   <Ionicons name="checkmark-circle" size={16} color="#4caf50" />
-                  <Text style={styles.recText}>{item}</Text>
+                  <Text className="flex-1 text-sm text-gray-700 leading-5">
+                    {item}
+                  </Text>
                 </View>
               ))}
 
-              <Text style={styles.recHeader}>Dietary Suggestions</Text>
+              <Text className="text-[15px] font-bold text-[#1b5e20] mt-3.5 mb-2">
+                Dietary Suggestions
+              </Text>
               {diseaseInfo.diet.map((item: string, i: number) => (
-                <View key={i} style={styles.recRow}>
+                <View key={i} className="flex-row items-start gap-2 mb-2">
                   <Ionicons name="nutrition" size={16} color="#2d5016" />
-                  <Text style={styles.recText}>{item}</Text>
+                  <Text className="flex-1 text-sm text-gray-700 leading-5">
+                    {item}
+                  </Text>
                 </View>
               ))}
 
-              <View style={styles.warningBox}>
+              <View className="flex-row items-start bg-[#fff3cd] p-3 rounded-lg mt-3 gap-2">
                 <Ionicons name="warning" size={16} color="#ff9800" />
-                <Text style={styles.warningText}>
-                  Always consult a qualified Ayurvedic practitioner for proper diagnosis.
+                <Text className="flex-1 text-[13px] text-[#856404] leading-[18px]">
+                  Always consult a qualified Ayurvedic practitioner for proper
+                  diagnosis.
                 </Text>
               </View>
             </View>
@@ -295,31 +427,37 @@ export default function PredictionScreen() {
         </View>
       )}
 
-      <View style={{ height: 40 }} />
+      <View className="h-10" />
 
       {/* ── Symptom Picker Modal ── */}
       <Modal
         visible={modalVisible}
         animationType="slide"
-        onRequestClose={() => { setModalVisible(false); setSearchText(''); }}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setSearchText("");
+        }}
       >
-        <View style={styles.modalContainer}>
+        <View className="flex-1 bg-white">
           {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Symptom</Text>
+          <View className="bg-ayurveda-primary pt-[52px] pb-4 px-5 flex-row items-center justify-between">
+            <Text className="text-xl font-bold text-white">Select Symptom</Text>
             <TouchableOpacity
-              onPress={() => { setModalVisible(false); setSearchText(''); }}
-              style={styles.modalCloseBtn}
+              onPress={() => {
+                setModalVisible(false);
+                setSearchText("");
+              }}
+              className="p-1"
             >
               <Ionicons name="close" size={26} color="#fff" />
             </TouchableOpacity>
           </View>
 
           {/* Search */}
-          <View style={styles.searchBox}>
+          <View className="flex-row items-center bg-gray-100 m-4 rounded-xl border border-gray-300 px-3 gap-2">
             <Ionicons name="search" size={18} color="#999" />
             <TextInput
-              style={styles.searchInput}
+              className="flex-1 py-3 text-[15px] text-gray-800"
               placeholder="Search symptoms..."
               placeholderTextColor="#aaa"
               value={searchText}
@@ -327,14 +465,15 @@ export default function PredictionScreen() {
               autoFocus
             />
             {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchText('')}>
+              <TouchableOpacity onPress={() => setSearchText("")}>
                 <Ionicons name="close-circle" size={18} color="#999" />
               </TouchableOpacity>
             )}
           </View>
 
-          <Text style={styles.resultCount}>
-            {filteredSymptoms.length} symptom{filteredSymptoms.length !== 1 ? 's' : ''}
+          <Text className="text-xs text-gray-400 px-5 mb-1">
+            {filteredSymptoms.length} symptom
+            {filteredSymptoms.length !== 1 ? "s" : ""}
           </Text>
 
           {/* List */}
@@ -344,126 +483,32 @@ export default function PredictionScreen() {
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[styles.listItem, symptom === item && styles.listItemSelected]}
+                className={`flex-row items-center justify-between py-4 px-5 ${
+                  symptom === item ? "bg-[#f1f8e9]" : ""
+                }`}
                 onPress={() => handleSelectSymptom(item)}
                 activeOpacity={0.6}
               >
-                <Text style={[styles.listItemText, symptom === item && styles.listItemTextSelected]}>
+                <Text
+                  className={`text-[15px] flex-1 ${
+                    symptom === item
+                      ? "text-ayurveda-primary font-semibold"
+                      : "text-gray-800"
+                  }`}
+                >
                   {item}
                 </Text>
-                {symptom === item && <Ionicons name="checkmark" size={20} color="#2d5016" />}
+                {symptom === item && (
+                  <Ionicons name="checkmark" size={20} color="#2d5016" />
+                )}
               </TouchableOpacity>
             )}
-            ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
+            ItemSeparatorComponent={() => (
+              <View className="h-[1px] bg-gray-100" />
+            )}
           />
         </View>
       </Modal>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f8e9' },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, backgroundColor: '#f1f8e9' },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#1b5e20', marginTop: 16, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#777', textAlign: 'center', marginBottom: 24 },
-  primaryBtn: { backgroundColor: '#2d5016', paddingHorizontal: 28, paddingVertical: 14, borderRadius: 10 },
-  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-
-  card: {
-    backgroundColor: '#fff', margin: 16, marginBottom: 0, padding: 18, borderRadius: 12,
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3,
-  },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#1b5e20', marginBottom: 14 },
-  dominantRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  dominantLabel: { fontSize: 14, color: '#555' },
-  dominantValue: { fontSize: 16, fontWeight: 'bold', color: '#2d5016' },
-
-  symptomSelector: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 2, borderColor: '#e0e0e0', borderRadius: 10, padding: 14, backgroundColor: '#fafafa',
-  },
-  symptomSelectorSelected: { borderColor: '#2d5016', backgroundColor: '#f1f8e9' },
-  selectorInner: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  symptomPlaceholder: { fontSize: 15, color: '#aaa' },
-  symptomSelectedText: { fontSize: 14, color: '#1b5e20', fontWeight: '500', flex: 1 },
-  clearBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-  clearBtnText: { fontSize: 12, color: '#999' },
-
-  severityRow: { flexDirection: 'row', gap: 10 },
-  severityBtn: { flex: 1, alignItems: 'center', padding: 14, borderRadius: 10, borderWidth: 2, borderColor: '#e0e0e0', gap: 6, backgroundColor: '#fafafa' },
-  severityActive: { borderColor: '#2d5016', backgroundColor: '#f1f8e9' },
-  severityText: { fontSize: 12, color: '#bbb', fontWeight: '500' },
-  severityTextActive: { color: '#2d5016', fontWeight: '700' },
-
-  durationRow: { flexDirection: 'row', gap: 10 },
-  durationBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 10, borderWidth: 2, borderColor: '#e0e0e0', backgroundColor: '#fafafa' },
-  durationActive: { borderColor: '#2d5016', backgroundColor: '#f1f8e9' },
-  durationNum: { fontSize: 18, fontWeight: 'bold', color: '#bbb' },
-  durationNumActive: { color: '#2d5016' },
-  durationSub: { fontSize: 11, color: '#ccc' },
-  durationSubActive: { color: '#4a7c2c' },
-
-  predictBtn: {
-    backgroundColor: '#2d5016', margin: 16, padding: 18, borderRadius: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4,
-  },
-  predictBtnDisabled: { backgroundColor: '#aaa', elevation: 0 },
-  predictBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-
-  resultsSection: { margin: 16 },
-  resultsTitle: { fontSize: 20, fontWeight: 'bold', color: '#1b5e20', marginBottom: 14 },
-  infoToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', padding: 14, borderRadius: 10, marginTop: 12, elevation: 1 },
-  infoToggleText: { fontSize: 15, fontWeight: '600', color: '#2d5016' },
-  diseaseInfoCard: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginTop: 10, elevation: 2 },
-  diseaseTitle: { fontSize: 20, fontWeight: 'bold', color: '#1b5e20' },
-  diseaseSanskrit: { fontSize: 14, color: '#888', fontStyle: 'italic', marginBottom: 14 },
-  infoBlock: { marginBottom: 12 },
-  infoLabel: { fontSize: 11, fontWeight: '700', color: '#888', textTransform: 'uppercase', marginBottom: 3 },
-  infoValue: { fontSize: 14, color: '#333', lineHeight: 20 },
-  recHeader: { fontSize: 15, fontWeight: '700', color: '#1b5e20', marginTop: 14, marginBottom: 8 },
-  recRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
-  recText: { flex: 1, fontSize: 14, color: '#444', lineHeight: 20 },
-  warningBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fff3cd', padding: 12, borderRadius: 8, marginTop: 14, gap: 8 },
-  warningText: { flex: 1, fontSize: 13, color: '#856404', lineHeight: 18 },
-
-  // Patient details
-  patientRow: { flexDirection: 'row', gap: 12 },
-  patientField: { flex: 1 },
-  fieldLabel: { fontSize: 12, fontWeight: '600', color: '#777', textTransform: 'uppercase', marginBottom: 6 },
-  ageInput: {
-    borderWidth: 2, borderColor: '#e0e0e0', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 16,
-    color: '#333', backgroundColor: '#fafafa', textAlign: 'center',
-  },
-  genderRow: { flexDirection: 'row', gap: 8 },
-  genderBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 10,
-    borderWidth: 2, borderColor: '#e0e0e0', backgroundColor: '#fafafa',
-  },
-  genderBtnActive: { borderColor: '#2d5016', backgroundColor: '#f1f8e9' },
-  genderText: { fontSize: 13, color: '#bbb', fontWeight: '500' },
-  genderTextActive: { fontSize: 13, color: '#2d5016', fontWeight: '700' },
-
-  // Modal
-  modalContainer: { flex: 1, backgroundColor: '#fff' },
-  modalHeader: {
-    backgroundColor: '#2d5016', paddingTop: 52, paddingBottom: 16, paddingHorizontal: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
-  modalCloseBtn: { padding: 4 },
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5',
-    margin: 16, borderRadius: 10, borderWidth: 1, borderColor: '#e0e0e0',
-    paddingHorizontal: 12, gap: 8,
-  },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 15, color: '#333' },
-  resultCount: { fontSize: 12, color: '#aaa', paddingHorizontal: 20, marginBottom: 4 },
-  listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 20 },
-  listItemSelected: { backgroundColor: '#f1f8e9' },
-  listItemText: { fontSize: 15, color: '#333', flex: 1 },
-  listItemTextSelected: { color: '#2d5016', fontWeight: '600' },
-  listSeparator: { height: 1, backgroundColor: '#f5f5f5' },
-});
