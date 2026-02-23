@@ -75,7 +75,6 @@ export default function PredictionScreen() {
       setShowInfo(false);
       await storage.saveHistory({ ...result, symptom, severity, duration });
     } catch (e: any) {
-      // Demo mode when API not available
       const demo = {
         predicted_disease: "Gastritis",
         confidence: 0.875,
@@ -103,7 +102,7 @@ export default function PredictionScreen() {
           Complete your Prakriti assessment first
         </Text>
         <TouchableOpacity
-          className="bg-ayur veda-primary px-7 py-3.5 rounded-xl"
+          className="bg-[#2d5016] px-7 py-3.5 rounded-xl"
           onPress={() => router.push("/prakriti" as any)}
         >
           <Text className="text-white text-[15px] font-semibold">
@@ -131,7 +130,7 @@ export default function PredictionScreen() {
         <DoshaChart prakriti={prakriti} />
         <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-gray-100">
           <Text className="text-sm text-gray-600">Dominant Dosha:</Text>
-          <Text className="text-base font-bold text-ayurveda-primary">
+          <Text className="text-base font-bold text-[#2d5016]">
             {prakriti.dominant?.toUpperCase()}
           </Text>
         </View>
@@ -167,7 +166,7 @@ export default function PredictionScreen() {
                   key={g}
                   className={`flex-1 items-center py-3 rounded-xl border-2 ${
                     gender === g
-                      ? "border-ayurveda-primary bg-[#f1f8e9]"
+                      ? "border-[#2d5016] bg-[#f1f8e9]"
                       : "border-gray-300 bg-gray-50"
                   }`}
                   onPress={() => setGender(g)}
@@ -176,7 +175,7 @@ export default function PredictionScreen() {
                   <Text
                     className={`text-[13px] font-medium ${
                       gender === g
-                        ? "text-ayurveda-primary font-bold"
+                        ? "text-[#2d5016] font-bold"
                         : "text-gray-400"
                     }`}
                   >
@@ -197,7 +196,7 @@ export default function PredictionScreen() {
         <TouchableOpacity
           className={`flex-row items-center justify-between border-2 rounded-xl p-3.5 ${
             symptom
-              ? "border-ayurveda-primary bg-[#f1f8e9]"
+              ? "border-[#2d5016] bg-[#f1f8e9]"
               : "border-gray-300 bg-gray-50"
           }`}
           onPress={() => setModalVisible(true)}
@@ -239,26 +238,22 @@ export default function PredictionScreen() {
         )}
       </View>
 
-      {/* Severity */}
+      {/* Severity - UPDATED WITH MEDICAL ICONS */}
       <View className="bg-white m-4 mb-0 p-4 rounded-xl shadow-sm">
         <Text className="text-base font-semibold text-[#1b5e20] mb-3.5">
           Severity Level
         </Text>
         <View className="flex-row gap-2.5">
           {[
-            { level: "mild" as const, icon: "sunny", label: "Mild" },
-            {
-              level: "moderate" as const,
-              icon: "partly-sunny",
-              label: "Moderate",
-            },
-            { level: "severe" as const, icon: "thunderstorm", label: "Severe" },
-          ].map(({ level, icon, label }) => (
+            { level: "mild" as const, icon: "alert-circle-outline", label: "Mild", color: "#4caf50" },
+            { level: "moderate" as const, icon: "alert-circle", label: "Moderate", color: "#ff9800" },
+            { level: "severe" as const, icon: "warning", label: "Severe", color: "#d32f2f" },
+          ].map(({ level, icon, label, color }) => (
             <TouchableOpacity
               key={level}
               className={`flex-1 items-center p-3.5 rounded-xl border-2 gap-1.5 ${
                 severity === level
-                  ? "border-ayurveda-primary bg-[#f1f8e9]"
+                  ? "border-[#2d5016] bg-[#f1f8e9]"
                   : "border-gray-300 bg-gray-50"
               }`}
               onPress={() => setSeverity(level)}
@@ -267,14 +262,15 @@ export default function PredictionScreen() {
               <Ionicons
                 name={icon as any}
                 size={24}
-                color={severity === level ? "#2d5016" : "#bbb"}
+                color={severity === level ? color : "#bbb"}
               />
               <Text
                 className={`text-xs font-medium ${
                   severity === level
-                    ? "text-ayurveda-primary font-bold"
+                    ? "font-bold"
                     : "text-gray-400"
                 }`}
+                style={severity === level ? { color } : {}}
               >
                 {label}
               </Text>
@@ -294,7 +290,7 @@ export default function PredictionScreen() {
               key={d}
               className={`flex-1 items-center py-3.5 rounded-xl border-2 ${
                 duration === d
-                  ? "border-ayurveda-primary bg-[#f1f8e9]"
+                  ? "border-[#2d5016] bg-[#f1f8e9]"
                   : "border-gray-300 bg-gray-50"
               }`}
               onPress={() => setDuration(d)}
@@ -302,14 +298,14 @@ export default function PredictionScreen() {
             >
               <Text
                 className={`text-lg font-bold ${
-                  duration === d ? "text-ayurveda-primary" : "text-gray-400"
+                  duration === d ? "text-[#2d5016]" : "text-gray-400"
                 }`}
               >
                 {d}
               </Text>
               <Text
                 className={`text-[11px] ${
-                  duration === d ? "text-ayurveda-secondary" : "text-gray-300"
+                  duration === d ? "text-[#4a7c2c]" : "text-gray-300"
                 }`}
               >
                 days
@@ -322,7 +318,7 @@ export default function PredictionScreen() {
       {/* Predict Button */}
       <TouchableOpacity
         className={`m-4 p-4 rounded-xl flex-row items-center justify-center gap-2.5 shadow-md ${
-          !symptom || loading ? "bg-gray-400" : "bg-ayurveda-primary"
+          !symptom || loading ? "bg-gray-400" : "bg-[#2d5016]"
         }`}
         onPress={handlePredict}
         disabled={!symptom || loading}
@@ -357,7 +353,7 @@ export default function PredictionScreen() {
             onPress={() => setShowInfo(!showInfo)}
             activeOpacity={0.7}
           >
-            <Text className="text-[15px] font-semibold text-ayurveda-primary">
+            <Text className="text-[15px] font-semibold text-[#2d5016]">
               {showInfo ? "Hide" : "Show"} Disease Information
             </Text>
             <Ionicons
@@ -440,7 +436,7 @@ export default function PredictionScreen() {
       >
         <View className="flex-1 bg-white">
           {/* Header */}
-          <View className="bg-ayurveda-primary pt-[52px] pb-4 px-5 flex-row items-center justify-between">
+          <View className="bg-[#2d5016] pt-[52px] pb-4 px-5 flex-row items-center justify-between">
             <Text className="text-xl font-bold text-white">Select Symptom</Text>
             <TouchableOpacity
               onPress={() => {
@@ -492,7 +488,7 @@ export default function PredictionScreen() {
                 <Text
                   className={`text-[15px] flex-1 ${
                     symptom === item
-                      ? "text-ayurveda-primary font-semibold"
+                      ? "text-[#2d5016] font-semibold"
                       : "text-gray-800"
                   }`}
                 >
