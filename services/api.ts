@@ -63,7 +63,7 @@ export const storage = {
     try {
       const user = await authService.currentUser();
       if (!user) {
-        console.warn('⚠️ No user logged in - cannot save prediction');
+        console.warn('No user logged in - cannot save prediction');
         return;
       }
 
@@ -76,7 +76,7 @@ export const storage = {
         top_3: prediction.top_3,
       });
 
-      console.log(' Prediction saved to Supabase:', prediction.predicted_disease);
+      console.log('Prediction saved to Supabase:', prediction.predicted_disease);
     } catch (error) {
       console.error('Error saving prediction:', error);
       throw error;
