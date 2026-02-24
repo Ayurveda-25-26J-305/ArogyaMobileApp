@@ -3,7 +3,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { authService } from '../services/supabase';
-import '../global.css';
+
 
 const HEADER       = { backgroundColor: '#2d5016' };
 const HEADER_TITLE = { fontWeight: 'bold' as const };

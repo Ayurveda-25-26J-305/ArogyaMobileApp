@@ -31,7 +31,7 @@ export default function RegisterScreen() {
     try {
       await authService.register(email.trim(), password, name.trim());
       Alert.alert(
-        'Account Created! 🎉',
+        'Account Created!',
         'Please check your email to verify your account, then login.',
         [{ text: 'Go to Login', onPress: () => router.replace('/login' as any) }]
       );
@@ -156,7 +156,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.footer}>SLIIT • CoEAI • Project 25-26J-305</Text>
+        <Text style={styles.footer}>SLIIT • Project 25-26J-305</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

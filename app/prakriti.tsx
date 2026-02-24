@@ -1,135 +1,260 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { storage } from "../services/api";
-import { PRAKRITI_QUESTIONS } from "../utils/constants";
+import React, { useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { storage, authService } from '../services/supabase';
 
-const DOSHA_COLORS: any = {
-  vata: "#FF6B6B",
-  pitta: "#4ECDC4",
-  kapha: "#45B7D1",
+const QUESTIONS = [
+  {
+    id: 1,
+    category: 'Physical',
+    question: 'Body Build',
+    options: [
+      { label: 'Thin/Light', dosha: 'vata' },
+      { label: 'Medium', dosha: 'pitta' },
+      { label: 'Large/Heavy', dosha: 'kapha' },
+    ],
+  },
+  {
+    id: 2,
+    category: 'Physical',
+    question: 'Skin Type',
+    options: [
+      { label: 'Dry/Rough', dosha: 'vata' },
+      { label: 'Warm/Oily', dosha: 'pitta' },
+      { label: 'Thick/Cool', dosha: 'kapha' },
+    ],
+  },
+  {
+    id: 3,
+    category: 'Digestive',
+    question: 'Appetite',
+    options: [
+      { label: 'Irregular', dosha: 'vata' },
+      { label: 'Strong', dosha: 'pitta' },
+      { label: 'Steady/Slow', dosha: 'kapha' },
+    ],
+  },
+  {
+    id: 4,
+    category: 'Sleep',
+    question: 'Sleep Pattern',
+    options: [
+      { label: 'Light/Interrupted', dosha: 'vata' },
+      { label: 'Moderate', dosha: 'pitta' },
+      { label: 'Deep/Long', dosha: 'kapha' },
+    ],
+  },
+  {
+    id: 5,
+    category: 'Mental',
+    question: 'Mental Activity',
+    options: [
+      { label: 'Restless/Active', dosha: 'vata' },
+      { label: 'Sharp/Focused', dosha: 'pitta' },
+      { label: 'Calm/Steady', dosha: 'kapha' },
+    ],
+  },
+  {
+    id: 6,
+    category: 'Emotional',
+    question: 'Temperament',
+    options: [
+      { label: 'Anxious/Worried', dosha: 'vata' },
+      { label: 'Irritable/Angry', dosha: 'pitta' },
+      { label: 'Calm/Attached', dosha: 'kapha' },
+    ],
+  },
+];
+
+const DOSHA_COLORS = {
+  vata: '#FF6B6B',
+  pitta: '#4ECDC4',
+  kapha: '#45B7D1',
 };
 
 export default function PrakritiScreen() {
   const router = useRouter();
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<any>({});
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
 
-  const calculatePrakriti = (ans: any) => {
-    const counts: any = { vata: 0, pitta: 0, kapha: 0 };
-    Object.values(ans).forEach((v: any) => {
-      counts[v]++;
-    });
-    const total = Object.values(counts).reduce(
-      (a: any, b: any) => a + b,
-      0,
-    ) as number;
-    return {
-      vata: (counts.vata / total).toFixed(2),
-      pitta: (counts.pitta / total).toFixed(2),
-      kapha: (counts.kapha / total).toFixed(2),
-      dominant: (Object.keys(counts) as string[]).reduce((a, b) =>
-        counts[a] > counts[b] ? a : b,
-      ),
-    };
-  };
-
-  const handleAnswer = async (questionId: string, value: string) => {
-    const newAnswers = { ...answers, [questionId]: value };
+  const handleAnswer = (dosha: string) => {
+    const newAnswers = { ...answers, [currentQ]: dosha };
     setAnswers(newAnswers);
-
-    if (current < PRAKRITI_QUESTIONS.length - 1) {
-      setCurrent(current + 1);
+    
+    if (currentQ < QUESTIONS.length - 1) {
+      setCurrentQ(currentQ + 1);
     } else {
-      const prakriti = calculatePrakriti(newAnswers);
-      await storage.savePrakriti(prakriti);
-      router.replace({
-        pathname: "/prediction",
-        params: { prakriti: JSON.stringify(prakriti) },
-      } as any);
+      calculatePrakriti(newAnswers);
     }
   };
 
-  const question = PRAKRITI_QUESTIONS[current];
-  const progress = ((current + 1) / PRAKRITI_QUESTIONS.length) * 100;
+  const calculatePrakriti = async (finalAnswers: Record<number, string>) => {
+    const counts = { vata: 0, pitta: 0, kapha: 0 };
+    Object.values(finalAnswers).forEach((dosha) => {
+      counts[dosha as keyof typeof counts]++;
+    });
+
+    const total = QUESTIONS.length;
+    const vata = counts.vata / total;
+    const pitta = counts.pitta / total;
+    const kapha = counts.kapha / total;
+
+    const dominant = vata >= pitta && vata >= kapha
+      ? 'vata'
+      : pitta >= kapha
+      ? 'pitta'
+      : 'kapha';
+
+    const prakriti = {
+      vata: vata.toFixed(2),
+      pitta: pitta.toFixed(2),
+      kapha: kapha.toFixed(2),
+      dominant,
+    };
+
+    try {
+      const user = await authService.currentUser();
+      if (user) {
+        await storage.savePrakriti(user.id, prakriti);
+      }
+    } catch (e) {
+      console.log('Error saving prakriti:', e);
+    }
+
+    Alert.alert(
+      'Assessment Complete! 🎉',
+      `Your dominant Prakriti is ${dominant.toUpperCase()}`,
+      [
+        {
+          text: 'Start Prediction',
+          onPress: () => router.push({ pathname: '/prediction', params: { prakriti: JSON.stringify(prakriti) } } as any),
+        },
+      ]
+    );
+  };
+
+  const goBack = () => {
+    if (currentQ > 0) setCurrentQ(currentQ - 1);
+  };
+
+  const question = QUESTIONS[currentQ];
+  const progress = ((currentQ + 1) / QUESTIONS.length) * 100;
 
   return (
-    <View className="flex-1 bg-[#f1f8e9]">
-      {/* Progress */}
-      <View className="bg-white px-5 py-3.5 border-b border-gray-300">
-        <View className="h-2 bg-gray-300 rounded overflow-hidden mb-2">
-          <View
-            className="h-full bg-ayurveda-primary rounded"
-            style={{ width: `${progress}%` }}
-          />
+    <View style={styles.container}>
+      
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBg}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
-        <Text className="text-[13px] text-gray-600 text-center">
-          Question {current + 1} of {PRAKRITI_QUESTIONS.length}
+        <Text style={styles.progressText}>
+          Question {currentQ + 1} of {QUESTIONS.length}
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 30 }}>
-        {/* Question Card */}
-        <View className="bg-white rounded-[14px] p-5 mb-5 shadow-md">
-          <Text className="text-lg font-semibold text-[#1b5e20] leading-7">
-            {question.question}
-          </Text>
+      {/* Question Card */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.questionCard}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{question.category}</Text>
+          </View>
+          <Text style={styles.questionTitle}>{question.question}</Text>
+          <Text style={styles.questionSubtitle}>Select the option that best describes you</Text>
         </View>
 
         {/* Options */}
-        {question.options.map((opt, i) => (
-          <TouchableOpacity
-            key={i}
-            className={`bg-white rounded-xl p-4 flex-row items-center mb-3 border-2 shadow-sm ${
-              answers[question.id] === opt.value
-                ? "border-ayurveda-primary bg-[#f1f8e9]"
-                : "border-gray-300"
-            }`}
-            onPress={() => handleAnswer(question.id, opt.value)}
-            activeOpacity={0.7}
-          >
-            <View className="flex-1">
-              <Text
-                className={`text-[15px] leading-5 ${
-                  answers[question.id] === opt.value
-                    ? "font-semibold text-[#1b5e20]"
-                    : "text-gray-800"
-                }`}
-              >
-                {opt.label}
-              </Text>
-            </View>
-            <View
-              className="px-3 py-1 rounded-full"
-              style={{ backgroundColor: DOSHA_COLORS[opt.value] }}
+        <View style={styles.optionsContainer}>
+          {question.options.map((option, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.optionBtn,
+                answers[currentQ] === option.dosha && styles.optionBtnActive,
+                { borderColor: DOSHA_COLORS[option.dosha as keyof typeof DOSHA_COLORS] },
+              ]}
+              onPress={() => handleAnswer(option.dosha)}
+              activeOpacity={0.7}
             >
-              <Text className="text-xs font-bold text-white">{opt.dosha}</Text>
-            </View>
-            {answers[question.id] === opt.value && (
-              <Ionicons
-                name="checkmark-circle"
-                size={22}
-                color="#2d5016"
-                style={{ marginLeft: 8 }}
-              />
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <View style={styles.optionContent}>
+                <View
+                  style={[
+                    styles.optionDot,
+                    { backgroundColor: DOSHA_COLORS[option.dosha as keyof typeof DOSHA_COLORS] },
+                    answers[currentQ] === option.dosha && styles.optionDotActive,
+                  ]}
+                />
+                <View style={styles.optionTextContainer}>
+                  <Text style={[
+                    styles.optionLabel,
+                    answers[currentQ] === option.dosha && styles.optionLabelActive,
+                  ]}>
+                    {option.label}
+                  </Text>
+                  <Text style={styles.optionDosha}>
+                    {option.dosha.charAt(0).toUpperCase() + option.dosha.slice(1)}
+                  </Text>
+                </View>
+              </View>
+              {answers[currentQ] === option.dosha && (
+                <Ionicons name="checkmark-circle" size={24} color="#4caf50" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* Back Button */}
-      {current > 0 && (
-        <TouchableOpacity
-          className="flex-row items-center justify-center p-4 bg-white border-t border-gray-300 gap-1.5"
-          onPress={() => setCurrent(current - 1)}
-        >
-          <Ionicons name="arrow-back" size={18} color="#2d5016" />
-          <Text className="text-[15px] font-semibold text-ayurveda-primary">
-            Previous
-          </Text>
-        </TouchableOpacity>
-      )}
+        {/* Navigation */}
+        {currentQ > 0 && (
+          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={20} color="#2d5016" />
+            <Text style={styles.backBtnText}>Previous Question</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f1f8e9' },
+  
+  progressContainer: { backgroundColor: '#fff', padding: 20, paddingTop: 60, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  progressBg: { height: 8, backgroundColor: '#e0e0e0', borderRadius: 4, overflow: 'hidden', marginBottom: 12 },
+  progressFill: { height: '100%', backgroundColor: '#2d5016', borderRadius: 4 },
+  progressText: { fontSize: 14, color: '#777', textAlign: 'center', fontWeight: '600' },
+  
+  content: { flex: 1, padding: 20 },
+  
+  questionCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, marginBottom: 24, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3 },
+  categoryBadge: { alignSelf: 'flex-start', backgroundColor: '#f1f8e9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, marginBottom: 16 },
+  categoryText: { fontSize: 12, fontWeight: '700', color: '#2d5016', textTransform: 'uppercase' },
+  questionTitle: { fontSize: 24, fontWeight: 'bold', color: '#1b5e20', marginBottom: 8 },
+  questionSubtitle: { fontSize: 14, color: '#777' },
+  
+  optionsContainer: { gap: 12, marginBottom: 24 },
+  optionBtn: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    borderWidth: 2, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 2,
+  },
+  optionBtnActive: { backgroundColor: '#f1f8e9', elevation: 3 },
+  optionContent: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  optionDot: { width: 16, height: 16, borderRadius: 8 },
+  optionDotActive: { width: 20, height: 20, borderRadius: 10 },
+  optionTextContainer: { flex: 1 },
+  optionLabel: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 2 },
+  optionLabelActive: { color: '#1b5e20', fontWeight: '700' },
+  optionDosha: { fontSize: 12, color: '#999', textTransform: 'capitalize' },
+  
+  backBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, padding: 16, borderRadius: 12, borderWidth: 2,
+    borderColor: '#2d5016', backgroundColor: '#fff',
+  },
+  backBtnText: { fontSize: 15, fontWeight: '700', color: '#2d5016' },
+});

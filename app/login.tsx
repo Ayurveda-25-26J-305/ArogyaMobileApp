@@ -1,4 +1,3 @@
-// app/login.tsx
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -113,7 +112,7 @@ export default function LoginScreen() {
 
         {/* Footer */}
         <Text style={styles.footer}>
-          SLIIT • CoEAI • Project 25-26J-305
+          SLIIT • Project 25-26J-305
         </Text>
 
       </ScrollView>
