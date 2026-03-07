@@ -3,8 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 
-const SUPABASE_URL  = 'https://davxldqvxxtejapdjvzn.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE';
+
+const SUPABASE_URL= 'https://davxldqvxxtejapdjvzn.supabase.co';
+const SUPABASE_ANON= 'sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE';
 
 const isWeb = Platform.OS === 'web';
 
