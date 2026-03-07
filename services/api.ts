@@ -1,6 +1,7 @@
 import { authService, userService, predictionService } from './supabase';
 
-const API_URL = 'http://192.168.1.42:5000'; 
+
+const API_URL=""
 
 export const diseaseApi = {
   predict: async (payload: {
