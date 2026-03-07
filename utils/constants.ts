@@ -122,3 +122,165 @@ export const TEAM_MEMBERS = [
   { name: 'Dias W A N M', id: 'IT22899910', component: 'Diet Planning' },
   { name: 'Fernando K P M R A', id: 'IT22897176', component: 'Q&A System' },
 ];
+
+
+export const DOSHA_SYMPTOMS: Record<string, string[]> = {
+  vata: [
+    'Dry cough',
+    'Constipation',
+    'Irregular burning sensation',
+    'Joint stiffness in morning',
+    'Difficulty breathing',
+    'Crackling sound in joints',
+    'Dizziness',
+    'Difficulty in movement',
+    'Dry mouth',
+    'Weight loss',
+    'Fatigue',
+    'Visual disturbances',
+  ],
+  pitta: [
+    'Intense burning sensation',
+    'Acid regurgitation',
+    'Burning sensation in joints',
+    'Redness around joints',
+    'Fever with joint pain',
+    'Burning sensation in head',
+    'Redness in eyes',
+    'Nausea with headache',
+    'Inflammation',
+    'Burning sensation while urinating',
+    'Yellowish urine',
+    'Excessive hunger',
+    'Fever with breathing difficulty',
+    'Yellowish sputum',
+  ],
+  kapha: [
+    'Heavy feeling in stomach',
+    'Joint swelling',
+    'Heaviness in joints',
+    'Excessive sleep',
+    'Productive cough',
+    'White thick sputum',
+    'Heaviness in head',
+    'Heaviness in chest',
+    'Nasal congestion',
+    'Bloating with gas',
+    'Sweet taste in mouth',
+    'Loss of appetite',
+    'Excessive salivation',
+    'Coldness in affected area',
+    'Reduced flexibility',
+    'Heaviness in body',
+    'Throbbing headache',
+    'Dull aching pain',
+    'Chest tightness',
+    'Wheezing sound',
+    'Relief after expectoration',
+  ],
+};
+
+export const PRAKRITI_SPECIFIC_ADVICE: Record<string, any> = {
+  vata: {
+    general: [
+      'Maintain regular daily routine',
+      'Eat warm, cooked foods',
+      'Avoid raw, cold foods',
+      'Practice calming activities like yoga',
+      'Get adequate rest and sleep',
+    ],
+    gastritis: [
+      'Eat smaller, frequent meals',
+      'Avoid irregular eating times',
+      'Include ghee and warm milk',
+    ],
+    arthritis: [
+      'Apply warm sesame oil massage',
+      'Avoid cold, dry environments',
+      'Practice gentle stretching',
+    ],
+    diabetes: [
+      'Maintain strict meal schedule',
+      'Eat warm, grounding foods',
+      'Include fenugreek and cinnamon',
+    ],
+    migraine: [
+      'Follow consistent sleep routine',
+      'Avoid excessive mental stimulation',
+      'Practice gentle head massage',
+    ],
+    asthma: [
+      'Avoid cold, dry air',
+      'Drink warm herbal teas',
+      'Practice pranayama breathing',
+    ],
+  },
+  pitta: {
+    general: [
+      'Avoid excessive heat and sun',
+      'Eat cooling foods',
+      'Practice moderation',
+      'Avoid spicy, acidic foods',
+      'Stay cool and calm',
+    ],
+    gastritis: [
+      'Drink coconut water',
+      'Avoid citrus and tomatoes',
+      'Eat sweet, ripe fruits',
+    ],
+    arthritis: [
+      'Apply cooling aloe vera gel',
+      'Avoid hot, spicy foods',
+      'Practice cooling pranayama',
+    ],
+    diabetes: [
+      'Eat bitter vegetables',
+      'Avoid heated, spicy foods',
+      'Include neem and turmeric',
+    ],
+    migraine: [
+      'Stay in cool environments',
+      'Avoid bright lights',
+      'Apply sandalwood paste on forehead',
+    ],
+    asthma: [
+      'Avoid heat and humidity',
+      'Drink cool water',
+      'Practice cooling breath exercises',
+    ],
+  },
+  kapha: {
+    general: [
+      'Stay active and exercise regularly',
+      'Eat light, warm foods',
+      'Avoid heavy, oily foods',
+      'Wake up early',
+      'Avoid excessive sleep',
+    ],
+    gastritis: [
+      'Eat light, easily digestible foods',
+      'Avoid dairy products',
+      'Include ginger and black pepper',
+    ],
+    arthritis: [
+      'Engage in vigorous exercise',
+      'Avoid cold, damp environments',
+      'Use dry heat therapy',
+    ],
+    diabetes: [
+      'Exercise daily',
+      'Avoid sweet, oily foods',
+      'Include barley and bitter gourd',
+    ],
+    migraine: [
+      'Avoid daytime sleep',
+      'Exercise in the morning',
+      'Avoid heavy, cold foods',
+    ],
+    asthma: [
+      'Avoid dairy and cold drinks',
+      'Exercise to reduce congestion',
+      'Use steam inhalation',
+    ],
+  },
+};
