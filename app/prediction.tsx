@@ -16,8 +16,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { diseaseApi } from "../services/api";
 import DoshaChart from "../components/DoshaChart";
 import DiseaseCard from "../components/DiseaseCard";
-import { SYMPTOMS, DISEASE_INFO } from "../utils/constants";
+import { SYMPTOMS, DISEASE_INFO, PRAKRITI_SPECIFIC_ADVICE, DOSHA_SYMPTOMS } from "../utils/constants";
 import { authService, predictionService } from "../services/supabase";
+
+
 
 export default function PredictionScreen() {
   const params = useLocalSearchParams();
@@ -39,12 +41,84 @@ export default function PredictionScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
 
+  const getRelevantSymptoms = (): string[] => {
+    if (!prakriti) return SYMPTOMS;
+
+    const prioritySymptoms = DOSHA_SYMPTOMS[prakriti.dominant] || [];
+    const otherSymptoms = SYMPTOMS.filter(s => !prioritySymptoms.includes(s));
+
+    return [...prioritySymptoms, ...otherSymptoms];
+  };
+
+  // Filter symptoms based on search
   const filteredSymptoms = useMemo(() => {
-    if (!searchText.trim()) return SYMPTOMS;
-    return SYMPTOMS.filter((s) =>
+    const relevantSymptoms = getRelevantSymptoms();
+    if (!searchText.trim()) return relevantSymptoms;
+    return relevantSymptoms.filter((s) =>
       s.toLowerCase().includes(searchText.toLowerCase()),
     );
-  }, [searchText]);
+  }, [searchText, prakriti]);
+
+  // Calculate dosha imbalance based on symptom
+  const calculateDoshaImbalance = () => {
+    // Find which dosha this symptom belongs to
+    const imbalancedDosha =
+      Object.entries(DOSHA_SYMPTOMS).find(([_, symptoms]) =>
+        symptoms.includes(symptom)
+      )?.[0] || prakriti?.dominant || 'pitta';
+
+    return {
+      vata_imbalance: imbalancedDosha === 'vata' ? 1.5 : 1.0,
+      pitta_imbalance: imbalancedDosha === 'pitta' ? 1.5 : 1.0,
+      kapha_imbalance: imbalancedDosha === 'kapha' ? 1.5 : 1.0,
+      imbalanced_dosha: imbalancedDosha,
+    };
+  };
+
+  // Adjust severity based on prakriti
+  const getAdjustedSeverity = () => {
+    let baseSeverity = severity === "mild" ? 0 : severity === "moderate" ? 1 : 2;
+
+    // Vata types tend to exaggerate symptoms
+    if (prakriti?.dominant === 'vata' && baseSeverity > 0) {
+      baseSeverity -= 0.2;
+    }
+
+    // Kapha types tend to underreport
+    if (prakriti?.dominant === 'kapha' && baseSeverity < 2) {
+      baseSeverity += 0.2;
+    }
+
+    return Math.max(0, Math.min(2, baseSeverity));
+  };
+
+  // Get seasonal recommendations
+  const getSeasonalRecommendations = () => {
+    const month = new Date().getMonth();
+    const season =
+      month >= 2 && month <= 4 ? 'spring' :
+      month >= 5 && month <= 8 ? 'summer' :
+      month >= 9 && month <= 11 ? 'fall' :
+      'winter';
+
+    const seasonalAdvice: Record<string, string> = {
+      spring: 'Kapha season - Avoid heavy, oily foods. Stay active.',
+      summer: 'Pitta season - Stay cool, avoid spicy foods.',
+      fall: 'Vata season - Eat warm, grounding foods. Maintain routine.',
+      winter: 'Kapha season - Exercise regularly, eat light foods.',
+    };
+
+    return {
+      season,
+      advice: seasonalAdvice[season],
+    };
+  };
+
+  // Check if symptom is priority for user's prakriti
+  const isPrioritySymptom = (symptomText: string): boolean => {
+    if (!prakriti) return false;
+    return DOSHA_SYMPTOMS[prakriti.dominant]?.includes(symptomText) || false;
+  };
 
   const handleSelectSymptom = (s: string) => {
     setSymptom(s);
@@ -60,32 +134,47 @@ export default function PredictionScreen() {
 
     setLoading(true);
     try {
-      // Get current user
       const user = await authService.currentUser();
       if (!user) {
         Alert.alert("Error", "Please login first");
         return;
       }
 
-      // Prepare payload
+      const imbalance = calculateDoshaImbalance();
+      const seasonal = getSeasonalRecommendations();
+
+      // Prepare enhanced payload
       const payload = {
         age: parseInt(age) || 30,
         gender,
         symptom,
-        severity: severity === "mild" ? 0 : severity === "moderate" ? 1 : 2,
+        severity: getAdjustedSeverity(),
         duration_days: duration,
         vata_score: parseFloat(prakriti?.vata || "0.33"),
         pitta_score: parseFloat(prakriti?.pitta || "0.33"),
         kapha_score: parseFloat(prakriti?.kapha || "0.33"),
         prakriti: prakriti?.dominant || "pitta",
+
+        // Enhanced constitutional awareness
+        vata_imbalance: imbalance.vata_imbalance,
+        pitta_imbalance: imbalance.pitta_imbalance,
+        kapha_imbalance: imbalance.kapha_imbalance,
+        imbalanced_dosha: imbalance.imbalanced_dosha,
+
+        // Additional context
+        current_season: seasonal.season,
+        symptom_matches_prakriti: isPrioritySymptom(symptom),
+        prakriti_confidence: prakriti?.confidence || 'MODERATE',
       };
+
+      console.log('🔍 Enhanced Payload:', payload);
 
       // Call API
       const result = await diseaseApi.predict(payload);
       setPrediction(result);
       setShowInfo(false);
 
-      // ✅ SAVE TO SUPABASE (with user.id)
+      // Save to Supabase
       await predictionService.save(user.id, {
         predicted_disease: result.predicted_disease,
         confidence: result.confidence,
@@ -111,7 +200,6 @@ export default function PredictionScreen() {
       };
       setPrediction(demo);
 
-      // Save demo too
       const user = await authService.currentUser();
       if (user) {
         await predictionService.save(user.id, {
@@ -146,6 +234,10 @@ export default function PredictionScreen() {
     );
   }
 
+  // ============================================================
+  // RENDER: MAIN UI
+  // ============================================================
+
   const diseaseInfo = prediction
     ? DISEASE_INFO[prediction.predicted_disease]
     : null;
@@ -164,8 +256,12 @@ export default function PredictionScreen() {
     severe: { icon: "warning" as const, label: "Severe", color: "#d32f2f" },
   };
 
+  const imbalance = calculateDoshaImbalance();
+  const seasonal = getSeasonalRecommendations();
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
       {/* Prakriti Summary */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Your Constitution</Text>
@@ -175,6 +271,17 @@ export default function PredictionScreen() {
           <Text style={styles.dominantValue}>
             {prakriti.dominant?.toUpperCase()}
           </Text>
+        </View>
+      </View>
+
+      {/* Seasonal Info */}
+      <View style={styles.seasonalCard}>
+        <Ionicons name="sunny" size={20} color="#ff9800" />
+        <View style={styles.seasonalContent}>
+          <Text style={styles.seasonalTitle}>
+            Current Season: {seasonal.season.charAt(0).toUpperCase() + seasonal.season.slice(1)}
+          </Text>
+          <Text style={styles.seasonalText}>{seasonal.advice}</Text>
         </View>
       </View>
 
@@ -224,7 +331,15 @@ export default function PredictionScreen() {
 
       {/* Symptom Selector */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Primary Symptom</Text>
+        <View style={styles.symptomHeader}>
+          <Text style={styles.cardTitle}>Primary Symptom</Text>
+          {isPrioritySymptom(symptom) && (
+            <View style={styles.priorityBadge}>
+              <Ionicons name="star" size={12} color="#ff9800" />
+              <Text style={styles.priorityText}>Matches your Prakriti</Text>
+            </View>
+          )}
+        </View>
         <TouchableOpacity
           style={[
             styles.symptomSelector,
@@ -357,11 +472,73 @@ export default function PredictionScreen() {
       {prediction && (
         <View style={styles.resultsSection}>
           <Text style={styles.resultsTitle}>🎯 Prediction Results</Text>
+          
           <DiseaseCard
             disease={prediction.predicted_disease}
             confidence={prediction.confidence}
             top3={prediction.top_3}
           />
+
+          {/* Constitutional Awareness Indicator */}
+          <View style={styles.doshaImpactCard}>
+            <Text style={styles.doshaImpactTitle}>🌿 Constitutional Analysis</Text>
+            <Text style={styles.doshaImpactSubtitle}>
+              Based on your {prakriti.dominant.toUpperCase()} constitution
+            </Text>
+            
+            <View style={styles.impactRow}>
+              <Ionicons name="leaf" size={16} color="#4caf50" />
+              <Text style={styles.impactText}>
+                Symptom affects: <Text style={styles.impactBold}>{imbalance.imbalanced_dosha.toUpperCase()}</Text> dosha
+              </Text>
+            </View>
+
+            {isPrioritySymptom(symptom) && (
+              <View style={styles.impactRow}>
+                <Ionicons name="checkmark-circle" size={16} color="#4caf50" />
+                <Text style={styles.impactText}>
+                  This symptom is common for your Prakriti type
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Personalized Recommendations */}
+          {PRAKRITI_SPECIFIC_ADVICE[prakriti.dominant] && (
+            <View style={styles.prakritiAdviceCard}>
+              <Text style={styles.prakritiAdviceTitle}>
+                ✨ Personalized for {prakriti.dominant.toUpperCase()} Constitution
+              </Text>
+              
+              <Text style={styles.prakritiAdviceSubtitle}>General Lifestyle</Text>
+              {PRAKRITI_SPECIFIC_ADVICE[prakriti.dominant].general.map((advice: string, i: number) => (
+                <View key={i} style={styles.adviceRow}>
+                  <Ionicons name="leaf" size={14} color="#4caf50" />
+                  <Text style={styles.adviceText}>{advice}</Text>
+                </View>
+              ))}
+
+              {PRAKRITI_SPECIFIC_ADVICE[prakriti.dominant][
+                prediction.predicted_disease.toLowerCase()
+              ] && (
+                <>
+                  <Text style={styles.prakritiAdviceSubtitle}>
+                    For {prediction.predicted_disease}
+                  </Text>
+                  {PRAKRITI_SPECIFIC_ADVICE[prakriti.dominant][
+                    prediction.predicted_disease.toLowerCase()
+                  ].map((advice: string, i: number) => (
+                    <View key={i} style={styles.adviceRow}>
+                      <Ionicons name="medical" size={14} color="#2d5016" />
+                      <Text style={styles.adviceText}>{advice}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+            </View>
+          )}
+
+          {/* Standard Disease Info */}
           <TouchableOpacity
             style={styles.infoToggle}
             onPress={() => setShowInfo(!showInfo)}
@@ -461,6 +638,12 @@ export default function PredictionScreen() {
               </TouchableOpacity>
             )}
           </View>
+          <View style={styles.priorityInfo}>
+            <Ionicons name="star" size={14} color="#ff9800" />
+            <Text style={styles.priorityInfoText}>
+              Symptoms marked with ⭐ are common for your {prakriti.dominant.toUpperCase()} constitution
+            </Text>
+          </View>
           <Text style={styles.resultCount}>
             {filteredSymptoms.length} symptom
             {filteredSymptoms.length !== 1 ? "s" : ""}
@@ -469,28 +652,35 @@ export default function PredictionScreen() {
             data={filteredSymptoms}
             keyExtractor={(_, i) => i.toString()}
             keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.listItem,
-                  symptom === item && styles.listItemSelected,
-                ]}
-                onPress={() => handleSelectSymptom(item)}
-                activeOpacity={0.6}
-              >
-                <Text
+            renderItem={({ item }) => {
+              const isPriority = isPrioritySymptom(item);
+              return (
+                <TouchableOpacity
                   style={[
-                    styles.listItemText,
-                    symptom === item && styles.listItemTextSelected,
+                    styles.listItem,
+                    symptom === item && styles.listItemSelected,
+                    isPriority && styles.listItemPriority,
                   ]}
+                  onPress={() => handleSelectSymptom(item)}
+                  activeOpacity={0.6}
                 >
-                  {item}
-                </Text>
-                {symptom === item && (
-                  <Ionicons name="checkmark" size={20} color="#2d5016" />
-                )}
-              </TouchableOpacity>
-            )}
+                  {isPriority && (
+                    <Ionicons name="star" size={16} color="#ff9800" />
+                  )}
+                  <Text
+                    style={[
+                      styles.listItemText,
+                      symptom === item && styles.listItemTextSelected,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                  {symptom === item && (
+                    <Ionicons name="checkmark" size={20} color="#2d5016" />
+                  )}
+                </TouchableOpacity>
+              );
+            }}
             ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
           />
         </View>
@@ -559,6 +749,22 @@ const styles = StyleSheet.create({
   dominantLabel: { fontSize: 14, color: "#555" },
   dominantValue: { fontSize: 16, fontWeight: "bold", color: "#2d5016" },
 
+  seasonalCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#fff3e0",
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 12,
+    gap: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#ff9800",
+  },
+  seasonalContent: { flex: 1 },
+  seasonalTitle: { fontSize: 14, fontWeight: "600", color: "#e65100", marginBottom: 4 },
+  seasonalText: { fontSize: 13, color: "#e65100", lineHeight: 18 },
+
   patientRow: { flexDirection: "row", gap: 12 },
   patientField: { flex: 1 },
   fieldLabel: {
@@ -592,6 +798,10 @@ const styles = StyleSheet.create({
   genderBtnActive: { borderColor: "#2d5016", backgroundColor: "#f1f8e9" },
   genderText: { fontSize: 13, color: "#bbb", fontWeight: "500" },
   genderTextActive: { color: "#2d5016", fontWeight: "700" },
+
+  symptomHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  priorityBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#fff3e0", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  priorityText: { fontSize: 11, color: "#e65100", fontWeight: "600" },
 
   symptomSelector: {
     flexDirection: "row",
@@ -676,6 +886,46 @@ const styles = StyleSheet.create({
     color: "#1b5e20",
     marginBottom: 14,
   },
+
+  doshaImpactCard: {
+    backgroundColor: "#e8f5e9",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4caf50",
+  },
+  doshaImpactTitle: { fontSize: 16, fontWeight: "700", color: "#1b5e20", marginBottom: 4 },
+  doshaImpactSubtitle: { fontSize: 13, color: "#2e7d32", marginBottom: 12, fontStyle: "italic" },
+  impactRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  impactText: { fontSize: 14, color: "#2e7d32", flex: 1 },
+  impactBold: { fontWeight: "700", color: "#1b5e20" },
+
+  prakritiAdviceCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 18,
+    marginTop: 12,
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: "#4caf50",
+  },
+  prakritiAdviceTitle: { fontSize: 17, fontWeight: "bold", color: "#1b5e20", marginBottom: 14 },
+  prakritiAdviceSubtitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#2d5016",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  adviceRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 8,
+  },
+  adviceText: { flex: 1, fontSize: 13, color: "#444", lineHeight: 18 },
+
   infoToggle: {
     flexDirection: "row",
     alignItems: "center",
@@ -687,6 +937,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   infoToggleText: { fontSize: 15, fontWeight: "600", color: "#2d5016" },
+
   diseaseInfoCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -760,6 +1011,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 15, color: "#333" },
+  priorityInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#fff3e0",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 8,
+  },
+  priorityInfoText: { flex: 1, fontSize: 12, color: "#e65100", lineHeight: 16 },
   resultCount: {
     fontSize: 12,
     color: "#aaa",
@@ -772,8 +1034,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 16,
     paddingHorizontal: 20,
+    gap: 10,
   },
   listItemSelected: { backgroundColor: "#f1f8e9" },
+  listItemPriority: {
+    backgroundColor: "#fff9e6",
+    borderLeftWidth: 3,
+    borderLeftColor: "#ff9800",
+  },
   listItemText: { fontSize: 15, color: "#333", flex: 1 },
   listItemTextSelected: { color: "#2d5016", fontWeight: "600" },
   listSeparator: { height: 1, backgroundColor: "#f5f5f5" },
