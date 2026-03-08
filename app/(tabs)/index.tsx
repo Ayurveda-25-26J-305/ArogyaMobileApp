@@ -1,217 +1,130 @@
-// app/(tabs)/index.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { storage } from "../../services/api";
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { storage, authService } from '../../services/supabase';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [prakriti, setPrakriti] = useState<any>(null);
   const [historyCount, setHistoryCount] = useState(0);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
-    const saved = await storage.getPrakriti();
-    const history = await storage.getHistory();
-    setPrakriti(saved);
-    setHistoryCount(history.length);
+    try {
+      const currentUser = await authService.currentUser();
+      setUser(currentUser);
+      if (currentUser) {
+        const p = await storage.getPrakriti(currentUser.id);
+        setPrakriti(p);
+        const h = await storage.getHistory(currentUser.id);
+        setHistoryCount(h.length);
+      }
+    } catch (e) {
+      console.log('Error loading data:', e);
+    }
   };
 
-  const features = [
-    {
-      title: "Disease Prediction",
-      desc: "Constitutional-aware AI diagnosis",
-      icon: "fitness",
-      color: "#2d5016",
-      route: "/prakriti",
-    },
-    {
-      title: "Medicine Guide",
-      desc: "Personalized Ayurvedic remedies",
-      icon: "medical",
-      color: "#4a7c2c",
-      route: "/(tabs)/medicine",
-    },
-    {
-      title: "Diet Planning",
-      desc: "Dosha-balanced meal plans",
-      icon: "restaurant",
-      color: "#6a8759",
-      route: "/(tabs)/diet",
-    },
-    {
-      title: "Ask Questions",
-      desc: "Intelligent Ayurvedic guidance",
-      icon: "help-circle",
-      color: "#558b2f",
-      route: "/(tabs)/qa",
-    },
-  ];
+  const handleQuickStart = () => {
+    if (prakriti) {
+      router.push({ pathname: '/prediction', params: { prakriti: JSON.stringify(prakriti) } } as any);
+    } else {
+      router.push('/prakriti' as any);
+    }
+  };
 
   return (
-    <ScrollView
-      className="flex-1 bg-[#f1f8e9]"
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Hero */}
-      <View className="bg-ayurveda-primary py-10 px-5 rounded-b-[28px] items-center">
-        <Text className="text-[26px] font-bold text-white text-center mb-2">
-          🌿 Welcome to Arogya
-        </Text>
-        <Text className="text-sm text-[#c8e6c9] text-center leading-5">
-          Ancient Ayurvedic Wisdom Powered by Modern AI
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
+      {/* Hero Section */}
+      <View style={styles.hero}>
+        <Text style={styles.heroEmoji}>🌿</Text>
+        <Text style={styles.heroTitle}>Arogya</Text>
+        <Text style={styles.heroSubtitle}>
+          Constitutional-Aware Ayurvedic Disease Prediction
         </Text>
       </View>
 
-      {/* Stats */}
-      <View className="flex-row -mt-6 mx-4 gap-2 mb-2">
-        {[
-          { value: "84.2%", label: "Accuracy" },
-          { value: "5", label: "Diseases" },
-          { value: String(historyCount), label: "My Tests" },
-        ].map((stat, i) => (
-          <View
-            key={i}
-            className="flex-1 bg-white rounded-xl p-3.5 items-center shadow-md"
-          >
-            <Text className="text-lg font-bold text-ayurveda-primary">
-              {stat.value}
-            </Text>
-            <Text className="text-[11px] text-gray-600 mt-0.5">
-              {stat.label}
-            </Text>
-          </View>
-        ))}
+      {/* Stats Cards */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>84.2%</Text>
+          <Text style={styles.statLabel}>Accuracy</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>5</Text>
+          <Text style={styles.statLabel}>Diseases</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{historyCount}</Text>
+          <Text style={styles.statLabel}>Tests</Text>
+        </View>
       </View>
 
-      {/* Get Started */}
-      <View className="px-4 pt-5">
-        <Text className="text-lg font-bold text-[#1b5e20] mb-3">
-          Get Started
+      {/* Quick Start */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>🎯 Quick Start</Text>
+        <Text style={styles.cardText}>
+          {prakriti
+            ? 'Your Prakriti is assessed. Start disease prediction now.'
+            : 'Begin by assessing your Prakriti (body constitution).'}
         </Text>
-        {prakriti ? (
-          <View className="bg-white rounded-xl p-4 shadow-sm">
-            <View className="flex-row items-center gap-2 mb-3.5">
-              <Ionicons name="checkmark-circle" size={22} color="#4caf50" />
-              <Text className="text-[15px] text-gray-800">
-                Prakriti:{" "}
-                <Text className="font-bold text-ayurveda-primary">
-                  {prakriti.dominant?.toUpperCase()}
-                </Text>
-              </Text>
-            </View>
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleQuickStart} activeOpacity={0.8}>
+          <Ionicons name={prakriti ? 'analytics' : 'body'} size={20} color="#fff" />
+          <Text style={styles.primaryBtnText}>
+            {prakriti ? 'Start Prediction' : 'Assess Prakriti'}
+          </Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Features Grid */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Features</Text>
+        <View style={styles.grid}>
+          {[
+            { icon: 'body', title: 'Prakriti Assessment', desc: 'Determine your body constitution', route: '/prakriti' },
+            { icon: 'analytics', title: 'Disease Prediction', desc: 'AI-powered health analysis', route: '/prediction' },
+            { icon: 'medkit', title: 'Medicine Recommendations', desc: 'Personalized herbal remedies', route: '/(tabs)/medicine' },
+            { icon: 'nutrition', title: 'Diet Plans', desc: 'Ayurvedic meal suggestions', route: '/(tabs)/diet' },
+          ].map((item, i) => (
             <TouchableOpacity
-              className="bg-ayurveda-primary rounded-xl p-4 flex-row items-center gap-3 shadow-md"
-              onPress={() => router.push("/prediction" as any)}
+              key={i}
+              style={styles.featureCard}
+              onPress={() => router.push(item.route as any)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="analytics" size={22} color="#fff" />
-              <Text className="text-white text-base font-semibold">
-                Start Disease Prediction
-              </Text>
+              <View style={styles.featureIconWrap}>
+                <Ionicons name={item.icon as any} size={28} color="#2d5016" />
+              </View>
+              <Text style={styles.featureTitle}>{item.title}</Text>
+              <Text style={styles.featureDesc}>{item.desc}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="mt-2.5 p-2.5 items-center"
-              onPress={async () => {
-                await storage.clearPrakriti();
-                setPrakriti(null);
-              }}
-            >
-              <Text className="text-ayurveda-primary text-sm font-semibold">
-                Retake Prakriti Assessment
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            className="bg-ayurveda-primary rounded-xl p-4 flex-row items-center gap-3 shadow-md"
-            onPress={() => router.push("/prakriti" as any)}
-          >
-            <Ionicons name="body" size={22} color="#fff" />
-            <View className="flex-1 ml-3">
-              <Text className="text-white text-base font-semibold">
-                Start Prakriti Assessment
-              </Text>
-              <Text className="text-[#c8e6c9] text-xs mt-0.5">
-                Discover your constitutional type
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={22} color="#fff" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Features */}
-      <View className="px-4 pt-5">
-        <Text className="text-lg font-bold text-[#1b5e20] mb-3">Features</Text>
-        {features.map((f, i) => (
-          <TouchableOpacity
-            key={i}
-            className="bg-white rounded-xl p-3.5 flex-row items-center border-l-4 mb-2.5 shadow-sm"
-            style={{ borderLeftColor: f.color }}
-            onPress={() => router.push(f.route as any)}
-          >
-            <View
-              className="w-12 h-12 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: f.color }}
-            >
-              <Ionicons name={f.icon as any} size={26} color="#fff" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-[#1b5e20]">
-                {f.title}
-              </Text>
-              <Text className="text-xs text-gray-600 mt-0.5">{f.desc}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#999" />
-          </TouchableOpacity>
-        ))}
+          ))}
+        </View>
       </View>
 
       {/* How It Works */}
-      <View className="px-4 pt-5">
-        <Text className="text-lg font-bold text-[#1b5e20] mb-3">
-          How It Works
-        </Text>
-        <View className="bg-white rounded-xl p-4 shadow-sm">
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>How It Works</Text>
+        <View style={styles.stepsContainer}>
           {[
-            {
-              step: "1",
-              title: "Prakriti Assessment",
-              desc: "Answer 6 quick questions",
-            },
-            {
-              step: "2",
-              title: "Select Symptom",
-              desc: "Choose from 60+ symptoms",
-            },
-            {
-              step: "3",
-              title: "AI Prediction",
-              desc: "84.2% accurate results",
-            },
-            {
-              step: "4",
-              title: "Get Guidance",
-              desc: "Personalized recommendations",
-            },
-          ].map((item, i) => (
-            <View key={i} className="flex-row items-start mb-3.5 gap-3">
-              <View className="w-8 h-8 rounded-full bg-ayurveda-primary items-center justify-center">
-                <Text className="text-white font-bold text-sm">
-                  {item.step}
-                </Text>
+            { num: '1', title: 'Assess Prakriti', desc: 'Answer questions about your body type' },
+            { num: '2', title: 'Enter Symptoms', desc: 'Select your primary symptom and severity' },
+            { num: '3', title: 'Get Prediction', desc: 'AI analyzes using constitutional factors' },
+            { num: '4', title: 'View Results', desc: 'Receive personalized recommendations' },
+          ].map((step, i) => (
+            <View key={i} style={styles.stepCard}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>{step.num}</Text>
               </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#1b5e20]">
-                  {item.title}
-                </Text>
-                <Text className="text-xs text-gray-600 mt-0.5">
-                  {item.desc}
-                </Text>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>{step.title}</Text>
+                <Text style={styles.stepDesc}>{step.desc}</Text>
               </View>
             </View>
           ))}
@@ -219,15 +132,84 @@ export default function HomeScreen() {
       </View>
 
       {/* Disclaimer */}
-      <View className="flex-row items-start bg-[#fff3cd] m-4 p-3 rounded-lg gap-2">
-        <Ionicons name="warning" size={18} color="#ff9800" />
-        <Text className="flex-1 text-xs text-[#856404] leading-[18px]">
-          For educational purposes only. Always consult qualified Ayurvedic
-          practitioners.
+      <View style={styles.disclaimer}>
+        <Ionicons name="information-circle" size={20} color="#ff9800" />
+        <Text style={styles.disclaimerText}>
+          This is a research prototype. Always consult qualified Ayurvedic practitioners for diagnosis and treatment.
         </Text>
       </View>
 
-      <View className="h-8" />
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f1f8e9' },
+  hero: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
+  heroEmoji: { fontSize: 64, marginBottom: 12 },
+  heroTitle: { fontSize: 36, fontWeight: 'bold', color: '#1b5e20', marginBottom: 8 },
+  heroSubtitle: { fontSize: 14, color: '#777', textAlign: 'center', maxWidth: 280 },
+  
+  statsContainer: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 16 },
+  statCard: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    alignItems: 'center', elevation: 2, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3,
+  },
+  statValue: { fontSize: 28, fontWeight: 'bold', color: '#2d5016', marginBottom: 4 },
+  statLabel: { fontSize: 12, color: '#777', textTransform: 'uppercase' },
+  
+  card: {
+    backgroundColor: '#fff', marginHorizontal: 16, marginBottom: 16,
+    borderRadius: 16, padding: 20, elevation: 2, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3,
+  },
+  cardTitle: { fontSize: 20, fontWeight: 'bold', color: '#1b5e20', marginBottom: 8 },
+  cardText: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 16 },
+  
+  primaryBtn: {
+    backgroundColor: '#2d5016', borderRadius: 12, padding: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2, shadowRadius: 4,
+  },
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  
+  section: { marginHorizontal: 16, marginBottom: 24 },
+  sectionTitle: { fontSize: 22, fontWeight: 'bold', color: '#1b5e20', marginBottom: 16 },
+  
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  featureCard: {
+    width: '48%', backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 3,
+  },
+  featureIconWrap: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: '#f1f8e9',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  featureTitle: { fontSize: 15, fontWeight: '700', color: '#1b5e20', marginBottom: 4 },
+  featureDesc: { fontSize: 12, color: '#777', lineHeight: 16 },
+  
+  stepsContainer: { gap: 12 },
+  stepCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    flexDirection: 'row', gap: 16, elevation: 1, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
+  },
+  stepNumber: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: '#2d5016',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stepNumberText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  stepContent: { flex: 1, justifyContent: 'center' },
+  stepTitle: { fontSize: 15, fontWeight: '700', color: '#1b5e20', marginBottom: 2 },
+  stepDesc: { fontSize: 13, color: '#777', lineHeight: 18 },
+  
+  disclaimer: {
+    marginHorizontal: 16, backgroundColor: '#fff3cd', borderRadius: 12,
+    padding: 16, flexDirection: 'row', gap: 12, alignItems: 'flex-start',
+  },
+  disclaimerText: { flex: 1, fontSize: 13, color: '#856404', lineHeight: 18 },
+});

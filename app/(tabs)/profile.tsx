@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { storage } from "../../services/api";
-import { TEAM_MEMBERS, STORAGE_KEYS } from "../../utils/constants";
+// app/(tabs)/profile.tsx
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { authService, userService, predictionService } from '../../services/supabase';
+import DoshaChart from '../../components/DoshaChart';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [prakriti, setPrakriti] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [qaProfile, setQaProfile] = useState<{
@@ -20,290 +23,258 @@ export default function ProfileScreen() {
   }, []);
 
   const loadData = async () => {
-    const p = await storage.getPrakriti();
-    const h = await storage.getHistory();
-    const profileStr = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-    setPrakriti(p);
-    setHistory(h);
-    if (profileStr) setQaProfile(JSON.parse(profileStr));
+    try {
+      const currentUser = await authService.currentUser();
+      if (currentUser) {
+        setUser(currentUser);
+        const p = await userService.getPrakriti(currentUser.id);
+        setPrakriti(p);
+        const h = await predictionService.getHistory(currentUser.id);
+        setHistory(h.slice(0, 5));
+      }
+    } catch (e) {
+      console.log('Error loading profile:', e);
+    }
   };
 
-  const handleClearHistory = () => {
-    Alert.alert("Clear History", "Delete all prediction history?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: async () => {
-          await storage.clearHistory();
-          setHistory([]);
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await authService.logout();
+            router.replace('/login' as any);
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  const DOSHA_COLORS: any = {
-    vata: "#FF6B6B",
-    pitta: "#4ECDC4",
-    kapha: "#45B7D1",
+  const handleClearHistory = async () => {
+    Alert.alert(
+      'Clear History',
+      'Are you sure? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            if (user) {
+              await predictionService.clearAll(user.id);
+              setHistory([]);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRetakePrakriti = async () => {
+    if (user) {
+      await userService.savePrakriti(user.id, null);
+      setPrakriti(null);
+      router.push('/prakriti' as any);
+    }
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-[#f1f8e9]"
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      
       {/* Header */}
-      <View className="bg-ayurveda-primary p-8 items-center rounded-b-3xl">
-        <View className="w-[90px] h-[90px] rounded-full bg-white/20 items-center justify-center mb-3">
-          <Ionicons name="person" size={52} color="#fff" />
-        </View>
-        <Text className="text-[22px] font-bold text-white mb-1">
-          Your Profile
-        </Text>
-        <Text className="text-[13px] text-[#c8e6c9]">
-          AyurAI Health Tracker
-        </Text>
-      </View>
-
-      {/* QA Profile */}
-      <View className="px-4 pt-5">
-        <Text className="text-[17px] font-bold text-[#1b5e20] mb-2.5">
-          Q&amp;A Profile
-        </Text>
-        {qaProfile ? (
-          <View className="bg-white rounded-xl p-4 shadow-sm mb-1">
-            <View className="flex-row items-center gap-2 mb-3">
-              <Ionicons name="chatbubble-ellipses" size={20} color="#2d5016" />
-              <Text className="text-[15px] font-bold text-[#1b5e20]">
-                Ayurveda Q&amp;A — Personalised
-              </Text>
-            </View>
-            <View className="flex-row gap-3">
-              <View className="flex-1 bg-[#f1f8e9] rounded-lg p-3 items-center">
-                <Ionicons name="body-outline" size={20} color="#2d5016" />
-                <Text className="text-[11px] text-gray-500 mt-1">Dosha</Text>
-                <Text className="text-[15px] font-bold text-[#1b5e20] capitalize mt-0.5">
-                  {qaProfile.dominant_dosha}
-                </Text>
-              </View>
-              <View className="flex-1 bg-[#f1f8e9] rounded-lg p-3 items-center">
-                <Ionicons name="sunny-outline" size={20} color="#2d5016" />
-                <Text className="text-[11px] text-gray-500 mt-1">Season</Text>
-                <Text className="text-[15px] font-bold text-[#1b5e20] capitalize mt-0.5">
-                  {qaProfile.current_season}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              className="flex-row items-center justify-center gap-1.5 pt-3"
-              onPress={() => router.push("/prakriti" as any)}
-            >
-              <Ionicons name="refresh" size={14} color="#2d5016" />
-              <Text className="text-[13px] text-ayurveda-primary font-semibold">
-                Retake Assessment
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            className="bg-white rounded-xl p-8 items-center shadow-sm mb-1"
-            onPress={() => router.push("/prakriti" as any)}
-          >
-            <Ionicons name="person-add-outline" size={44} color="#ccc" />
-            <Text className="text-sm text-gray-400 mt-2.5">
-              No Q&amp;A profile yet
-            </Text>
-            <Text className="text-[13px] text-ayurveda-primary mt-1">
-              Tap to start Prakriti quiz
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Prakriti */}
-      <View className="px-4 pt-5">
-        <Text className="text-[17px] font-bold text-[#1b5e20] mb-2.5">
-          Constitutional Type
-        </Text>
-        {prakriti ? (
-          <View className="bg-white rounded-xl p-4 shadow-sm">
-            <View className="flex-row items-center gap-2.5 mb-3.5">
-              <Ionicons name="body" size={22} color="#2d5016" />
-              <Text className="text-[17px] font-bold text-[#1b5e20]">
-                Dominant: {prakriti.dominant?.toUpperCase()}
-              </Text>
-            </View>
-            <View className="flex-row justify-around bg-[#f1f8e9] rounded-lg py-3 mb-3">
-              {["vata", "pitta", "kapha"].map((d) => (
-                <View key={d} className="items-center">
-                  <Text
-                    className="text-xl font-bold"
-                    style={{ color: DOSHA_COLORS[d] }}
-                  >
-                    {(parseFloat(prakriti[d] || "0") * 100).toFixed(0)}%
-                  </Text>
-                  <Text className="text-xs text-gray-600 mt-0.5">
-                    {d.charAt(0).toUpperCase() + d.slice(1)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              className="flex-row items-center justify-center gap-1.5 pt-2.5"
-              onPress={async () => {
-                await storage.clearPrakriti();
-                setPrakriti(null);
-                router.push("/prakriti" as any);
-              }}
-            >
-              <Ionicons name="refresh" size={16} color="#2d5016" />
-              <Text className="text-sm text-ayurveda-primary font-semibold">
-                Retake Assessment
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            className="bg-white rounded-xl p-8 items-center shadow-sm"
-            onPress={() => router.push("/prakriti" as any)}
-          >
-            <Ionicons name="body-outline" size={44} color="#ccc" />
-            <Text className="text-sm text-gray-400 mt-2.5">
-              No assessment yet
-            </Text>
-            <Text className="text-[13px] text-ayurveda-primary mt-1">
-              Tap to start
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* History */}
-      <View className="px-4 pt-5">
-        <View className="flex-row justify-between items-center mb-2.5">
-          <Text className="text-[17px] font-bold text-[#1b5e20]">
-            Prediction History
+      <View style={styles.header}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {user?.email?.charAt(0).toUpperCase() || 'U'}
           </Text>
+        </View>
+        <Text style={styles.userName}>{user?.email || 'User'}</Text>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
+          <Ionicons name="log-out-outline" size={18} color="#d32f2f" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Prakriti Summary */}
+      {prakriti ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Your Prakriti</Text>
+          <DoshaChart prakriti={prakriti} />
+          <View style={styles.doshaScores}>
+            <View style={styles.doshaScore}>
+              <View style={[styles.doshaDot, { backgroundColor: '#FF6B6B' }]} />
+              <Text style={styles.doshaLabel}>Vata</Text>
+              <Text style={styles.doshaValue}>{(parseFloat(prakriti.vata) * 100).toFixed(0)}%</Text>
+            </View>
+            <View style={styles.doshaScore}>
+              <View style={[styles.doshaDot, { backgroundColor: '#4ECDC4' }]} />
+              <Text style={styles.doshaLabel}>Pitta</Text>
+              <Text style={styles.doshaValue}>{(parseFloat(prakriti.pitta) * 100).toFixed(0)}%</Text>
+            </View>
+            <View style={styles.doshaScore}>
+              <View style={[styles.doshaDot, { backgroundColor: '#45B7D1' }]} />
+              <Text style={styles.doshaLabel}>Kapha</Text>
+              <Text style={styles.doshaValue}>{(parseFloat(prakriti.kapha) * 100).toFixed(0)}%</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.retakeBtn} onPress={handleRetakePrakriti} activeOpacity={0.7}>
+            <Ionicons name="refresh" size={16} color="#2d5016" />
+            <Text style={styles.retakeBtnText}>Retake Assessment</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.card}>
+          <Ionicons name="body-outline" size={48} color="#ccc" />
+          <Text style={styles.emptyTitle}>No Prakriti Assessment</Text>
+          <Text style={styles.emptyText}>Take the assessment to discover your body constitution</Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/prakriti' as any)} activeOpacity={0.8}>
+            <Text style={styles.primaryBtnText}>Start Assessment</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Prediction History */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Predictions</Text>
           {history.length > 0 && (
             <TouchableOpacity onPress={handleClearHistory}>
-              <Text className="text-[13px] text-red-700 font-semibold">
-                Clear All
-              </Text>
+              <Text style={styles.clearText}>Clear All</Text>
             </TouchableOpacity>
           )}
         </View>
-        {history.length > 0 ? (
-          history.slice(0, 5).map((item, i) => (
-            <View
-              key={i}
-              className="bg-white rounded-xl p-3.5 flex-row items-center mb-2 shadow-sm"
-            >
-              <View className="w-[38px] h-[38px] rounded-full bg-[#f1f8e9] items-center justify-center mr-3">
-                <Ionicons name="medical" size={20} color="#2d5016" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#1b5e20] mb-0.5">
-                  {item.predicted_disease || item.disease}
-                </Text>
-                <Text className="text-xs text-gray-400">
-                  {item.symptom} •{" "}
-                  {new Date(item.timestamp).toLocaleDateString()}
+        {history.length === 0 ? (
+          <View style={styles.emptyHistory}>
+            <Ionicons name="time-outline" size={48} color="#ccc" />
+            <Text style={styles.emptyHistoryText}>No predictions yet</Text>
+          </View>
+        ) : (
+          history.map((item, index) => (
+            <View key={index} style={styles.historyCard}>
+              <View style={styles.historyHeader}>
+                <Text style={styles.historyDisease}>{item.predicted_disease}</Text>
+                <Text style={styles.historyConfidence}>
+                  {(item.confidence * 100).toFixed(1)}%
                 </Text>
               </View>
-              <Text className="text-sm font-bold text-ayurveda-primary">
-                {((item.confidence || 0.85) * 100).toFixed(0)}%
+              <Text style={styles.historySymptom}>Symptom: {item.symptom}</Text>
+              <Text style={styles.historyDate}>
+                {new Date(item.created_at).toLocaleDateString()}
               </Text>
             </View>
           ))
-        ) : (
-          <View className="bg-white rounded-xl p-8 items-center shadow-sm">
-            <Ionicons name="time-outline" size={44} color="#ccc" />
-            <Text className="text-sm text-gray-400 mt-2.5">
-              No predictions yet
-            </Text>
-          </View>
         )}
       </View>
 
-      {/* Team */}
-      <View className="px-4 pt-5">
-        <Text className="text-[17px] font-bold text-[#1b5e20] mb-2.5">
-          Development Team
-        </Text>
-        <View className="bg-white rounded-xl p-4 shadow-sm">
-          {TEAM_MEMBERS.map((m, i) => (
-            <View
-              key={i}
-              className={`flex-row items-center py-3 gap-3 ${
-                i < TEAM_MEMBERS.length - 1 ? "border-b border-gray-100" : ""
-              }`}
-            >
-              <View className="w-10 h-10 rounded-full bg-ayurveda-primary items-center justify-center">
-                <Text className="text-white font-bold text-base">
-                  {m.name.charAt(0)}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-[#1b5e20]">
-                  {m.name}
-                </Text>
-                <Text className="text-xs text-gray-400">{m.id}</Text>
-                <Text className="text-xs text-ayurveda-primary font-medium mt-0.5">
-                  {m.component}
-                </Text>
-              </View>
+      {/* Team Info */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Team Members</Text>
+        {[
+          { name: 'Perera S I A', id: 'IT22905918', module: 'Disease Prediction' },
+          { name: 'Roche J P', id: 'IT22344274', module: 'Medicine Recommendation' },
+          { name: 'Dias W A N M', id: 'IT22899910', module: 'Diet Planning' },
+          { name: 'Fernando K P M R A', id: 'IT22897176', module: 'Q&A System' },
+        ].map((member, i) => (
+          <View key={i} style={styles.teamCard}>
+            <View style={styles.teamAvatar}>
+              <Text style={styles.teamAvatarText}>{member.name.charAt(0)}</Text>
             </View>
-          ))}
-        </View>
+            <View style={styles.teamInfo}>
+              <Text style={styles.teamName}>{member.name}</Text>
+              <Text style={styles.teamId}>{member.id}</Text>
+              <Text style={styles.teamModule}>{member.module}</Text>
+            </View>
+          </View>
+        ))}
       </View>
 
-      {/* Academic */}
-      <View className="px-4 pt-5">
-        <View className="bg-[#e8f5e9] rounded-xl p-4 border-l-4 border-ayurveda-primary">
-          <Text className="text-sm font-semibold text-[#1b5e20] mb-2">
-            🎓 SLIIT - Sri Lanka Institute of Information Technology
-          </Text>
-          <Text className="text-[13px] text-gray-700 mb-1">
-            Research Group: Centre of Excellence for AI (CoEAI)
-          </Text>
-          <Text className="text-[13px] text-gray-700 mb-1">
-            Course: IT4010 Research Project - 2025 July
-          </Text>
-          <Text className="text-[13px] text-gray-700">
-            Project ID: 25-26J-305
-          </Text>
-        </View>
-      </View>
-
-      {/* Stats */}
-      <View className="px-4 pt-5">
-        <View className="bg-white rounded-xl p-4 shadow-sm">
-          <Text className="text-[22px] font-bold text-[#1b5e20] text-center mb-1">
-            🌿 AyurAI
-          </Text>
-          <Text className="text-xs text-gray-600 text-center mb-4">
-            Constitutional-Aware Ayurvedic Disease Prediction
-          </Text>
-          <View className="flex-row justify-around border-t border-gray-100 pt-3.5">
-            {[
-              ["84.2%", "Accuracy"],
-              ["10%", "Improvement"],
-              ["1000+", "Patients"],
-              ["5", "Diseases"],
-            ].map(([v, l], i) => (
-              <View key={i} className="items-center">
-                <Text className="text-lg font-bold text-ayurveda-primary">
-                  {v}
-                </Text>
-                <Text className="text-[11px] text-gray-400 mt-0.5">{l}</Text>
-              </View>
-            ))}
+      {/* Project Info */}
+      <View style={styles.footer}>
+        <Text style={styles.footerTitle}>SLIIT • CoEAI</Text>
+        <Text style={styles.footerSubtitle}>Project 25-26J-305</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>84.2%</Text>
+            <Text style={styles.statLabel}>Accuracy</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>10%</Text>
+            <Text style={styles.statLabel}>Improvement</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>1000+</Text>
+            <Text style={styles.statLabel}>Patients</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>5</Text>
+            <Text style={styles.statLabel}>Diseases</Text>
           </View>
         </View>
       </View>
 
-      <View className="h-8" />
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f1f8e9' },
+  
+  header: { backgroundColor: '#2d5016', paddingTop: 60, paddingBottom: 32, alignItems: 'center' },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#2d5016' },
+  userName: { fontSize: 18, fontWeight: '600', color: '#fff', marginBottom: 12 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  logoutText: { fontSize: 14, fontWeight: '600', color: '#d32f2f' },
+  
+  card: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: 16, padding: 20, borderRadius: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, alignItems: 'center' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1b5e20', marginBottom: 16, alignSelf: 'flex-start' },
+  doshaScores: { width: '100%', gap: 12, marginTop: 16 },
+  doshaScore: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  doshaDot: { width: 12, height: 12, borderRadius: 6 },
+  doshaLabel: { flex: 1, fontSize: 14, color: '#666', fontWeight: '500' },
+  doshaValue: { fontSize: 16, fontWeight: 'bold', color: '#1b5e20' },
+  retakeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: '#2d5016' },
+  retakeBtnText: { fontSize: 14, fontWeight: '600', color: '#2d5016' },
+  
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1b5e20', marginTop: 12, marginBottom: 4 },
+  emptyText: { fontSize: 13, color: '#777', textAlign: 'center', marginBottom: 16 },
+  primaryBtn: { backgroundColor: '#2d5016', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
+  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  
+  section: { marginHorizontal: 16, marginTop: 24 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1b5e20' },
+  clearText: { fontSize: 14, color: '#d32f2f', fontWeight: '600' },
+  
+  emptyHistory: { backgroundColor: '#fff', borderRadius: 16, padding: 40, alignItems: 'center' },
+  emptyHistoryText: { fontSize: 14, color: '#999', marginTop: 12 },
+  
+  historyCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
+  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  historyDisease: { fontSize: 16, fontWeight: '700', color: '#1b5e20' },
+  historyConfidence: { fontSize: 14, fontWeight: '600', color: '#4caf50' },
+  historySymptom: { fontSize: 13, color: '#666', marginBottom: 4 },
+  historyDate: { fontSize: 12, color: '#999' },
+  
+  teamCard: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
+  teamAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#2d5016', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  teamAvatarText: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  teamInfo: { flex: 1, justifyContent: 'center' },
+  teamName: { fontSize: 15, fontWeight: '700', color: '#1b5e20', marginBottom: 2 },
+  teamId: { fontSize: 12, color: '#666', marginBottom: 2 },
+  teamModule: { fontSize: 12, color: '#2d5016', fontWeight: '500' },
+  
+  footer: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: 24, padding: 20, borderRadius: 16, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3 },
+  footerTitle: { fontSize: 16, fontWeight: 'bold', color: '#1b5e20', marginBottom: 4 },
+  footerSubtitle: { fontSize: 13, color: '#777', marginBottom: 16 },
+  statsRow: { flexDirection: 'row', gap: 20 },
+  statItem: { alignItems: 'center' },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: '#2d5016', marginBottom: 2 },
+  statLabel: { fontSize: 11, color: '#999', textTransform: 'uppercase' },
+});
