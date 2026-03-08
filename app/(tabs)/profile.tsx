@@ -13,6 +13,10 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
   const [prakriti, setPrakriti] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [qaProfile, setQaProfile] = useState<{
+    dominant_dosha: string;
+    current_season: string;
+  } | null>(null);
 
   useEffect(() => {
     loadData();
