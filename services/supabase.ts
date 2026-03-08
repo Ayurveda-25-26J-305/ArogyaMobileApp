@@ -28,7 +28,7 @@ export const authService = {
       email, 
       password,
       options: {
-        emailRedirectTo: undefined,  // Disable email confirmation for testing
+        emailRedirectTo: undefined, 
       }
     });
     
@@ -43,29 +43,34 @@ export const authService = {
 
     console.log('Auth user created:', data.user.id);
 
-    // Step 2: Create profile in users table
-    try {
-      const { error: insertError } = await supabase
-        .from('users')
-        .insert({
-          id: data.user.id,  
-          name,
-          email,
-          created_at: new Date().toISOString(),
-        });
-
-      if (insertError) {
-        console.error('Error creating user profile:', insertError);
-        throw insertError;
-      }
-
-      console.log('User profile created in users table');
-    } catch (insertError) {
-      console.error('Failed to create user profile:', insertError);
-      await supabase.auth.admin.deleteUser(data.user.id);
-      throw new Error('Failed to create user profile');
+    // Step 2: Explicitly apply the session so RLS auth.uid() resolves correctly
+    if (!data.session) {
+      // Email confirmation is enabled — profile will be created after the user confirms
+      console.log('Email confirmation required — skipping profile insert until confirmed');
+      return data.user;
     }
 
+    await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
+
+    // Step 3: Create profile in users table
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert({
+        id: data.user.id,
+        name,
+        email,
+        created_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error('Failed to create user profile:', insertError);
+      throw insertError;
+    }
+
+    console.log('User profile created in users table');
     return data.user;
   },
 
