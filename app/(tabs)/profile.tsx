@@ -2,13 +2,18 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storage } from "../../services/api";
-import { TEAM_MEMBERS } from "../../utils/constants";
+import { TEAM_MEMBERS, STORAGE_KEYS } from "../../utils/constants";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [prakriti, setPrakriti] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [qaProfile, setQaProfile] = useState<{
+    dominant_dosha: string;
+    current_season: string;
+  } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -17,8 +22,10 @@ export default function ProfileScreen() {
   const loadData = async () => {
     const p = await storage.getPrakriti();
     const h = await storage.getHistory();
+    const profileStr = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
     setPrakriti(p);
     setHistory(h);
+    if (profileStr) setQaProfile(JSON.parse(profileStr));
   };
 
   const handleClearHistory = () => {
@@ -57,6 +64,61 @@ export default function ProfileScreen() {
         <Text className="text-[13px] text-[#c8e6c9]">
           AyurAI Health Tracker
         </Text>
+      </View>
+
+      {/* QA Profile */}
+      <View className="px-4 pt-5">
+        <Text className="text-[17px] font-bold text-[#1b5e20] mb-2.5">
+          Q&amp;A Profile
+        </Text>
+        {qaProfile ? (
+          <View className="bg-white rounded-xl p-4 shadow-sm mb-1">
+            <View className="flex-row items-center gap-2 mb-3">
+              <Ionicons name="chatbubble-ellipses" size={20} color="#2d5016" />
+              <Text className="text-[15px] font-bold text-[#1b5e20]">
+                Ayurveda Q&amp;A — Personalised
+              </Text>
+            </View>
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-[#f1f8e9] rounded-lg p-3 items-center">
+                <Ionicons name="body-outline" size={20} color="#2d5016" />
+                <Text className="text-[11px] text-gray-500 mt-1">Dosha</Text>
+                <Text className="text-[15px] font-bold text-[#1b5e20] capitalize mt-0.5">
+                  {qaProfile.dominant_dosha}
+                </Text>
+              </View>
+              <View className="flex-1 bg-[#f1f8e9] rounded-lg p-3 items-center">
+                <Ionicons name="sunny-outline" size={20} color="#2d5016" />
+                <Text className="text-[11px] text-gray-500 mt-1">Season</Text>
+                <Text className="text-[15px] font-bold text-[#1b5e20] capitalize mt-0.5">
+                  {qaProfile.current_season}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              className="flex-row items-center justify-center gap-1.5 pt-3"
+              onPress={() => router.push("/prakriti" as any)}
+            >
+              <Ionicons name="refresh" size={14} color="#2d5016" />
+              <Text className="text-[13px] text-ayurveda-primary font-semibold">
+                Retake Assessment
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            className="bg-white rounded-xl p-8 items-center shadow-sm mb-1"
+            onPress={() => router.push("/prakriti" as any)}
+          >
+            <Ionicons name="person-add-outline" size={44} color="#ccc" />
+            <Text className="text-sm text-gray-400 mt-2.5">
+              No Q&amp;A profile yet
+            </Text>
+            <Text className="text-[13px] text-ayurveda-primary mt-1">
+              Tap to start Prakriti quiz
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Prakriti */}

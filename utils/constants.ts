@@ -122,3 +122,48 @@ export const TEAM_MEMBERS = [
   { name: 'Dias W A N M', id: 'IT22899910', component: 'Diet Planning' },
   { name: 'Fernando K P M R A', id: 'IT22897176', component: 'Q&A System' },
 ];
+
+// ─── QA Module ────────────────────────────────────────────────────────────────
+
+export const STORAGE_KEYS = {
+  USER_ID:      'ayurveda_user_id',
+  USER_PROFILE: 'ayurveda_user_profile',
+  SESSIONS:     'ayurveda_sessions',
+  CHAT_HISTORY: 'ayurveda_chat_history',
+  BOOKMARKS:    'ayurveda_bookmarks',
+};
+
+export function generateFollowUps(question: string): string[] {
+  const q = question.toLowerCase();
+  const herbPatterns: Array<[RegExp, string[]]> = [
+    [/turmeric|kaha|manjal|haldi/, ['What are the side effects of Turmeric?', 'What is the correct dosage of Turmeric?', 'Can Turmeric be combined with black pepper?']],
+    [/cinnamon|kurudu/, ['What are the side effects of Cinnamon?', 'How much Cinnamon should I take daily?', 'Is Cinnamon good for blood sugar?']],
+    [/ginger|inguru/, ['What are the side effects of Ginger?', 'Is Ginger good for digestion?', 'Can I take Ginger with Turmeric?']],
+    [/neem|kohomba/, ['How is Neem used for skin?', 'What is the dosage of Neem?', 'What are Neem side effects?']],
+    [/aloe.?vera|welpenela/, ['How much Aloe Vera is safe to drink?', 'Is Aloe Vera good for digestion?', 'What are the skin benefits of Aloe Vera?']],
+    [/ashwagandha/, ['How does Ashwagandha help stress?', 'What is the dosage of Ashwagandha?', 'Can I take Ashwagandha daily?']],
+    [/nelli|gooseberry|amla/, ['What vitamins are in Gooseberry?', 'How does Nelli help immunity?', 'Can I eat Nelli daily?']],
+    [/coriander|kottamalli/, ['How is Coriander used in Ayurveda?', 'What are the digestive benefits of Coriander?', 'Can Coriander seeds treat UTI?']],
+  ];
+  for (const [pattern, questions] of herbPatterns) {
+    if (pattern.test(q)) return questions;
+  }
+  if (/benefit|guna|use|property/.test(q))  return ['Are there any side effects?', 'What is the recommended dosage?', 'Which dosha benefits most?'];
+  if (/side.?effect|harm|safe/.test(q))      return ['What is a safe dosage?', 'What are the benefits?', 'Can children use this?'];
+  if (/dosage|dose|how much/.test(q))        return ['What are the benefits?', 'Are there side effects?', 'How long should I take it?'];
+  if (/vata|pitta|kapha|dosha/.test(q))      return ['What foods balance this dosha?', 'Which herbs help this dosha?', 'What activities help balance?'];
+  return ['Tell me more about this topic', 'What are the Ayurvedic tips for this?', 'Which dosha is affected?'];
+}
+
+export const QA_PRAKRITI_QUESTIONS = [
+  { id: 'q1',  question: 'What is your body frame and build?',        options: { A: 'Thin, light frame, hard to gain weight', B: 'Medium build, muscular, athletic',         C: 'Heavy, sturdy frame, easy to gain weight' } },
+  { id: 'q2',  question: 'How is your digestion typically?',          options: { A: 'Irregular, often gas or bloating',          B: 'Strong, feel hungry often',                C: 'Slow but steady, can skip meals' } },
+  { id: 'q3',  question: 'What is your skin type?',                   options: { A: 'Dry, rough, thin',                         B: 'Warm, oily, prone to rashes',              C: 'Thick, moist, smooth' } },
+  { id: 'q4',  question: 'How do you handle stress?',                 options: { A: 'Anxious, worried',                         B: 'Irritable, angry',                         C: 'Calm, withdrawn' } },
+  { id: 'q5',  question: 'What is your sleep pattern?',               options: { A: 'Light sleeper, difficulty sleeping',        B: 'Moderate, wake refreshed',                 C: 'Heavy sleeper, need lots of sleep' } },
+  { id: 'q6',  question: 'How is your energy level?',                 options: { A: 'Bursts, get tired easily',                 B: 'Consistent and strong',                    C: 'Steady, slow to start' } },
+  { id: 'q7',  question: 'What is your temperature preference?',      options: { A: 'Prefer warm, dislike cold',                B: 'Prefer cool, dislike heat',                C: 'Comfortable in most weather' } },
+  { id: 'q8',  question: 'How do you learn and remember?',            options: { A: 'Learn quickly, forget quickly',            B: 'Sharp intellect, good memory',             C: 'Learn slowly but retain well' } },
+  { id: 'q9',  question: 'What is your speaking style?',              options: { A: 'Fast, talkative',                         B: 'Precise, articulate',                      C: 'Slow, melodious' } },
+  { id: 'q10', question: 'How do you approach new activities?',       options: { A: 'Enthusiastic but may not finish',          B: 'Focused, competitive',                     C: 'Resistant to change, prefer routine' } },
+];
