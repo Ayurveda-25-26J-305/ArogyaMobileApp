@@ -283,7 +283,7 @@ export default function DietScreen() {
         meal_category: formData.mealCategory.toLowerCase(),
         diet_preference: formData.foodPreference.toLowerCase(),
       };
-      const response = await fetch("http://localhost:5001/api/diet/predict", {
+      const response = await fetch("http://localhost:5001/predict_diet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
