@@ -122,3 +122,35 @@ export const TEAM_MEMBERS = [
   { name: 'Dias W A N M', id: 'IT22899910', component: 'Diet Planning' },
   { name: 'Fernando K P M R A', id: 'IT22897176', component: 'Q&A System' },
 ];
+
+export const DISEASE_OPTIONS = [
+  { label: "Select your condition", value: "" },
+  { label: "Arthritis", value: "arthritis" },
+  { label: "Gastritis", value: "gastritis" },
+  { label: "Asthma", value: "asthma" },
+  { label: "Migraine", value: "migraine" },
+  { label: "Diabetes", value: "diabetes" },
+];
+
+export const REGION_OPTIONS = [
+  { label: "Select your region", value: "" },
+  { label: "Western Region", value: "Western" },
+  { label: "Eastern", value: "North_Central_Eastern" },
+  { label: "Eastern Region", value: "Eastern" },
+  { label: "Southern Region", value: "Southern " },
+  { label: "Central Region", value: "Central" },
+];
+
+export const GENDER_OPTIONS = [
+  { label: "Select gender", value: "" },
+  { label: "Male", value: "male" },
+  { label: "Female", value: "female" },
+];
+
+export const AGNI_OPTIONS = [
+  { label: "Select Agni State", value: "" },
+  { label: "Vishama", value: "Vishama Agni" },
+  { label: "Sama", value: "Sama Agni" },
+  { label: "Manda", value: "Manda Agni" },
+  { label: "Tikshna", value: "Tikshna Agni" },
+];
