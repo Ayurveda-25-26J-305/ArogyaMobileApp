@@ -17,7 +17,7 @@ const api = axios.create({
 import { authService, userService, predictionService } from './supabase';
 
 
-const API_URL=""
+const API_URL="https://web-production-51c30.up.railway.app";
 
 export const diseaseApi = {
   predict: async (payload: {
