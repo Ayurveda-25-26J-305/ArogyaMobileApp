@@ -47,7 +47,8 @@
             "deploymentTarget": "15.1"
           }
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
