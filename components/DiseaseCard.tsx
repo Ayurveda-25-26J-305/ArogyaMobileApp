@@ -1,78 +1,170 @@
-import React from "react";
-import { View, Text } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../utils/theme";
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
 interface DiseaseCardProps {
   disease: string;
   confidence: number;
-  top3?: Array<{ disease: string; probability: number }>;
+  top3: Array<{ disease: string; probability: number }>;
 }
 
-export default function DiseaseCard({
-  disease,
-  confidence,
-  top3,
-}: DiseaseCardProps) {
+export default function DiseaseCard({ disease, confidence, top3 }: DiseaseCardProps) {
   return (
-    <View className="gap-4">
+    <View style={styles.container}>
       {/* Primary Prediction */}
-      <View className="bg-ayurveda-primary rounded-2xl p-5 flex-row items-center shadow-md">
-        <View className="w-[60px] h-[60px] rounded-full bg-white/20 items-center justify-center mr-4">
-          <Ionicons name="fitness" size={40} color="#fff" />
+      <View style={styles.primaryCard}>
+        <Text style={styles.primaryLabel}>Primary Prediction</Text>
+        <Text style={styles.primaryDisease}>{disease}</Text>
+        <View style={styles.confidenceRow}>
+          <Text style={styles.confidenceLabel}>Confidence</Text>
+          <Text style={styles.confidenceValue}>
+            {(confidence * 100).toFixed(1)}%
+          </Text>
         </View>
-        <View className="flex-1">
-          <Text className="text-xs text-[#c8e6c9] uppercase mb-1">
-            Predicted Disease
-          </Text>
-          <Text className="text-[22px] font-bold text-white mb-1">
-            {disease}
-          </Text>
-          <Text className="text-sm text-[#e8f5e9]">
-            {(confidence * 100).toFixed(1)}% Confidence
-          </Text>
+        <View style={styles.progressBar}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${confidence * 100}%` },
+            ]}
+          />
         </View>
       </View>
 
-      {/* Top 3 Predictions */}
-      {top3 && top3.length > 0 && (
-        <View className="bg-white rounded-xl p-4 shadow-sm">
-          <Text className="text-base font-semibold text-[#1b5e20] mb-3">
-            Top 3 Predictions
-          </Text>
-          {top3.map((item, index) => (
-            <View
-              key={index}
-              className="flex-row items-center py-2 border-b border-gray-100"
-            >
-              <View className="w-7 h-7 rounded-full bg-[#f1f8e9] items-center justify-center mr-3">
-                <Text className="text-sm font-bold text-ayurveda-primary">
-                  {index + 1}
-                </Text>
-              </View>
-              <Text className="flex-1 text-[15px] text-[#1b5e20]">
-                {item.disease}
-              </Text>
-              <Text className="text-sm font-semibold text-[#33691e]">
-                {(item.probability * 100).toFixed(1)}%
-              </Text>
+      {/* Top 3 List */}
+      <View style={styles.listCard}>
+        <Text style={styles.listTitle}>Top 3 Predictions</Text>
+        {top3.map((item, index) => (
+          <View key={index} style={styles.listItem}>
+            <View style={styles.rankBadge}>
+              <Text style={styles.rankText}>{index + 1}</Text>
             </View>
-          ))}
-        </View>
-      )}
+            <Text style={styles.listDisease}>{item.disease}</Text>
+            <Text style={styles.listProbability}>
+              {(item.probability * 100).toFixed(1)}%
+            </Text>
+          </View>
+        ))}
+      </View>
 
-      {/* Disclaimer */}
-      <View className="flex-row items-start bg-[#fff3cd] p-3 rounded-lg gap-2">
-        <Ionicons
-          name="information-circle"
-          size={20}
-          color={theme.colors.primary.main}
-        />
-        <Text className="flex-1 text-[13px] text-[#856404] leading-[18px]">
-          This is a preliminary prediction. Please consult qualified Ayurvedic
-          practitioners.
+      {/* Warning */}
+      <View style={styles.warning}>
+        <Text style={styles.warningText}>
+          ⚕️ This is an AI prediction. Consult a qualified practitioner for confirmation.
         </Text>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { width: '100%' },
+  
+  primaryCard: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#4caf50',
+    elevation: 3,
+    shadowColor: '#4caf50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  primaryLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2e7d32',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  primaryDisease: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1b5e20',
+    marginBottom: 12,
+  },
+  confidenceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  confidenceLabel: { fontSize: 14, color: '#666' },
+  confidenceValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#c8e6c9',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4caf50',
+    borderRadius: 4,
+  },
+  
+  listCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+  },
+  listTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1b5e20',
+    marginBottom: 16,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  rankBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#2d5016',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  rankText: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
+  listDisease: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  listProbability: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#4caf50',
+  },
+  
+  warning: {
+    backgroundColor: '#fff3e0',
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff9800',
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#e65100',
+    lineHeight: 18,
+  },
+});
