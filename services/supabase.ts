@@ -1,52 +1,49 @@
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
+import { Platform } from "react-native";
 
+const SUPABASE_URL = "https://davxldqvxxtejapdjvzn.supabase.co";
+const SUPABASE_ANON = "sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE";
 
-
-const SUPABASE_URL= 'https://davxldqvxxtejapdjvzn.supabase.co';
-const SUPABASE_ANON= 'sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE';
-
-const isWeb = Platform.OS === 'web';
+const isWeb = Platform.OS === "web";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
-    storage:          isWeb ? undefined : AsyncStorage,
+    storage: isWeb ? undefined : AsyncStorage,
     autoRefreshToken: true,
-    persistSession:   true,
+    persistSession: true,
     detectSessionInUrl: false,
   },
 });
 
-
-
 export const authService = {
-
   register: async (email: string, password: string, name: string) => {
     // Step 1: Create auth user
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
+    const { data, error } = await supabase.auth.signUp({
+      email,
       password,
       options: {
-        emailRedirectTo: undefined, 
-      }
+        emailRedirectTo: undefined,
+      },
     });
-    
+
     if (error) {
-      console.error('Auth signup error:', error);
+      console.error("Auth signup error:", error);
       throw error;
     }
-    
+
     if (!data.user) {
-      throw new Error('No user returned from signup');
+      throw new Error("No user returned from signup");
     }
 
-    console.log('Auth user created:', data.user.id);
+    console.log("Auth user created:", data.user.id);
 
     // Step 2: Explicitly apply the session so RLS auth.uid() resolves correctly
     if (!data.session) {
       // Email confirmation is enabled — profile will be created after the user confirms
-      console.log('Email confirmation required — skipping profile insert until confirmed');
+      console.log(
+        "Email confirmation required — skipping profile insert until confirmed",
+      );
       return data.user;
     }
 
@@ -56,26 +53,27 @@ export const authService = {
     });
 
     // Step 3: Create profile in users table
-    const { error: insertError } = await supabase
-      .from('users')
-      .insert({
-        id: data.user.id,
-        name,
-        email,
-        created_at: new Date().toISOString(),
-      });
+    const { error: insertError } = await supabase.from("users").insert({
+      id: data.user.id,
+      name,
+      email,
+      created_at: new Date().toISOString(),
+    });
 
     if (insertError) {
-      console.error('Failed to create user profile:', insertError);
+      console.error("Failed to create user profile:", insertError);
       throw insertError;
     }
 
-    console.log('User profile created in users table');
+    console.log("User profile created in users table");
     return data.user;
   },
 
   login: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) throw error;
     return data.user;
   },
@@ -104,12 +102,11 @@ export const authService = {
 };
 
 export const userService = {
-
   getProfile: async (userId: string) => {
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
+      .from("users")
+      .select("*")
+      .eq("id", userId)
       .single();
     if (error) throw error;
     return data;
@@ -117,83 +114,96 @@ export const userService = {
 
   updateProfile: async (userId: string, updates: any) => {
     const { error } = await supabase
-      .from('users')
+      .from("users")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq("id", userId);
     if (error) throw error;
   },
 
   savePrakriti: async (userId: string, prakriti: any) => {
     if (!prakriti) {
-
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({
-          prakriti_vata:     null,
-          prakriti_pitta:    null,
-          prakriti_kapha:    null,
+          prakriti_vata: null,
+          prakriti_pitta: null,
+          prakriti_kapha: null,
           prakriti_dominant: null,
-          prakriti_updated:  null,
+          prakriti_updated: null,
         })
-        .eq('id', userId);
+        .eq("id", userId);
       if (error) throw error;
       return;
     }
 
     const { error } = await supabase
-      .from('users')
+      .from("users")
       .update({
-        prakriti_vata:     parseFloat(prakriti.vata),
-        prakriti_pitta:    parseFloat(prakriti.pitta),
-        prakriti_kapha:    parseFloat(prakriti.kapha),
+        prakriti_vata: parseFloat(prakriti.vata),
+        prakriti_pitta: parseFloat(prakriti.pitta),
+        prakriti_kapha: parseFloat(prakriti.kapha),
         prakriti_dominant: prakriti.dominant,
-        prakriti_updated:  new Date().toISOString(),
+        prakriti_updated: new Date().toISOString(),
       })
-      .eq('id', userId);
+      .eq("id", userId);
     if (error) throw error;
   },
 
   getPrakriti: async (userId: string) => {
     const { data, error } = await supabase
-      .from('users')
-      .select('prakriti_vata, prakriti_pitta, prakriti_kapha, prakriti_dominant')
-      .eq('id', userId)
+      .from("users")
+      .select(
+        "prakriti_vata, prakriti_pitta, prakriti_kapha, prakriti_dominant",
+      )
+      .eq("id", userId)
       .single();
-    if (error) return null;
-    if (!data?.prakriti_dominant) return null;
+    if (error) {
+      console.error("[getPrakriti] Supabase error:", error.message, error.code);
+      return null;
+    }
+    if (!data) {
+      console.warn("[getPrakriti] No row found for userId:", userId);
+      return null;
+    }
+    if (!data.prakriti_dominant) {
+      console.warn(
+        "[getPrakriti] prakriti_dominant is NULL for userId:",
+        userId,
+        "| row:",
+        data,
+      );
+      return null;
+    }
     return {
-      vata:     data.prakriti_vata?.toString() || '0.33',
-      pitta:    data.prakriti_pitta?.toString() || '0.33',
-      kapha:    data.prakriti_kapha?.toString() || '0.33',
+      vata: data.prakriti_vata?.toString() || "0.33",
+      pitta: data.prakriti_pitta?.toString() || "0.33",
+      kapha: data.prakriti_kapha?.toString() || "0.33",
       dominant: data.prakriti_dominant,
     };
   },
 };
 
-
-
 export const predictionService = {
-
   save: async (userId: string, prediction: any) => {
-    const { error } = await supabase.from('predictions').insert({
-      user_id:          userId,
+    const { error } = await supabase.from("predictions").insert({
+      user_id: userId,
       predicted_disease: prediction.predicted_disease,
-      confidence:       prediction.confidence,
-      symptom:          prediction.symptom,
-      severity:         prediction.severity,
-      duration_days:    prediction.duration,
-      top_3:            JSON.stringify(prediction.top_3 || []),
-      created_at:       new Date().toISOString(),
+      confidence: prediction.confidence,
+      symptom: prediction.symptom,
+      severity: prediction.severity,
+      duration_days: prediction.duration,
+      top_3: JSON.stringify(prediction.top_3 || []),
+      created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 
   getHistory: async (userId: string) => {
     const { data, error } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("predictions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
     return data || [];
@@ -201,126 +211,120 @@ export const predictionService = {
 
   delete: async (predictionId: string) => {
     const { error } = await supabase
-      .from('predictions')
+      .from("predictions")
       .delete()
-      .eq('id', predictionId);
+      .eq("id", predictionId);
     if (error) throw error;
   },
 
   clearAll: async (userId: string) => {
     const { error } = await supabase
-      .from('predictions')
+      .from("predictions")
       .delete()
-      .eq('user_id', userId);
+      .eq("user_id", userId);
     if (error) throw error;
   },
 };
 
-
 export const medicineService = {
-
   getByDisease: async (disease: string) => {
     const { data, error } = await supabase
-      .from('medicines')
-      .select('*')
-      .eq('disease', disease);
+      .from("medicines")
+      .select("*")
+      .eq("disease", disease);
     if (error) throw error;
     return data || [];
   },
 
   getByDosha: async (dosha: string) => {
     const { data, error } = await supabase
-      .from('medicines')
-      .select('*')
-      .ilike('dosha', `%${dosha}%`);
+      .from("medicines")
+      .select("*")
+      .ilike("dosha", `%${dosha}%`);
     if (error) throw error;
     return data || [];
   },
 
   getAll: async () => {
-    const { data, error } = await supabase.from('medicines').select('*');
+    const { data, error } = await supabase.from("medicines").select("*");
     if (error) throw error;
     return data || [];
   },
 
   add: async (medicine: any) => {
-    const { error } = await supabase.from('medicines').insert({
-      name:          medicine.name,
+    const { error } = await supabase.from("medicines").insert({
+      name: medicine.name,
       sanskrit_name: medicine.sanskrit_name,
-      disease:       medicine.disease,
-      dosha:         medicine.dosha,
-      description:   medicine.description,
-      dosage:        medicine.dosage,
-      preparation:   medicine.preparation,
-      source:        medicine.source,
-      created_at:    new Date().toISOString(),
+      disease: medicine.disease,
+      dosha: medicine.dosha,
+      description: medicine.description,
+      dosage: medicine.dosage,
+      preparation: medicine.preparation,
+      source: medicine.source,
+      created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 };
 
-
-
 export const dietService = {
-
   getPlanByDosha: async (dosha: string) => {
     const { data, error } = await supabase
-      .from('diet_plans')
-      .select('*')
-      .ilike('dosha', `%${dosha}%`);
+      .from("diet_plans")
+      .select("*")
+      .ilike("dosha", `%${dosha}%`);
     if (error) throw error;
     return data || [];
   },
 
   getPlanByDiseaseAndDosha: async (disease: string, dosha: string) => {
     const { data, error } = await supabase
-      .from('diet_plans')
-      .select('*')
-      .eq('disease', disease)
-      .ilike('dosha', `%${dosha}%`);
+      .from("diet_plans")
+      .select("*")
+      .eq("disease", disease)
+      .ilike("dosha", `%${dosha}%`);
     if (error) throw error;
     return data || [];
   },
 
   getAllFoods: async () => {
-    const { data, error } = await supabase.from('ayurvedic_foods').select('*');
+    const { data, error } = await supabase.from("ayurvedic_foods").select("*");
     if (error) throw error;
     return data || [];
   },
 
   addPlan: async (plan: any) => {
-    const { error } = await supabase.from('diet_plans').insert({
-      disease:     plan.disease,
-      dosha:       plan.dosha,
-      meal_type:   plan.meal_type,
-      foods:       JSON.stringify(plan.foods || []),
+    const { error } = await supabase.from("diet_plans").insert({
+      disease: plan.disease,
+      dosha: plan.dosha,
+      meal_type: plan.meal_type,
+      foods: JSON.stringify(plan.foods || []),
       avoid_foods: JSON.stringify(plan.avoid_foods || []),
-      season:      plan.season,
+      season: plan.season,
       description: plan.description,
-      created_at:  new Date().toISOString(),
+      created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 
   addFood: async (food: any) => {
-    const { error } = await supabase.from('ayurvedic_foods').insert({
-      name:         food.name,
-      rasa:         food.rasa,
-      virya:        food.virya,
-      vipaka:       food.vipaka,
+    const { error } = await supabase.from("ayurvedic_foods").insert({
+      name: food.name,
+      rasa: food.rasa,
+      virya: food.virya,
+      vipaka: food.vipaka,
       dosha_effect: JSON.stringify(food.dosha_effect || {}),
-      benefits:     food.benefits,
-      created_at:   new Date().toISOString(),
+      benefits: food.benefits,
+      created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 };
 
 export const qaService = {
-
   saveQA: async (userId: string, question: string, answer: string) => {
-    const { error } = await supabase.from('qa_history').insert({
-      user_id:    userId,
+    const { error } = await supabase.from("qa_history").insert({
+      user_id: userId,
       question,
       answer,
       created_at: new Date().toISOString(),
@@ -330,10 +334,10 @@ export const qaService = {
 
   getUserHistory: async (userId: string) => {
     const { data, error } = await supabase
-      .from('qa_history')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("qa_history")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
     return data || [];
@@ -341,115 +345,169 @@ export const qaService = {
 
   searchKnowledge: async (keyword: string) => {
     const { data, error } = await supabase
-      .from('qa_knowledge')
-      .select('*')
+      .from("qa_knowledge")
+      .select("*")
       .or(`question.ilike.%${keyword}%,answer.ilike.%${keyword}%`);
     if (error) throw error;
     return data || [];
   },
 
   addKnowledge: async (qa: any) => {
-    const { error } = await supabase.from('qa_knowledge').insert({
-      question:   qa.question,
-      answer:     qa.answer,
-      source:     qa.source,
-      category:   qa.category,
+    const { error } = await supabase.from("qa_knowledge").insert({
+      question: qa.question,
+      answer: qa.answer,
+      source: qa.source,
+      category: qa.category,
       created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 };
 
-
-
 export const nerService = {
-
   getAll: async () => {
-    const { data, error } = await supabase.from('ner_data').select('*');
+    const { data, error } = await supabase.from("ner_data").select("*");
     if (error) throw error;
     return data || [];
   },
 
   getBySource: async (source: string) => {
     const { data, error } = await supabase
-      .from('ner_data')
-      .select('*')
-      .eq('source', source);
+      .from("ner_data")
+      .select("*")
+      .eq("source", source);
     if (error) throw error;
     return data || [];
   },
 
   add: async (ner: any) => {
-    const { error } = await supabase.from('ner_data').insert({
-      sentence:       ner.sentence,
-      entity_text:    ner.entity_text,
-      entity_label:   ner.entity_label,
+    const { error } = await supabase.from("ner_data").insert({
+      sentence: ner.sentence,
+      entity_text: ner.entity_text,
+      entity_label: ner.entity_label,
       start_position: ner.start_position,
-      end_position:   ner.end_position,
-      source:         ner.source,
-      created_at:     new Date().toISOString(),
+      end_position: ner.end_position,
+      source: ner.source,
+      created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 
   getSymptomMappings: async () => {
     const { data, error } = await supabase
-      .from('symptom_disease_mappings')
-      .select('*');
+      .from("symptom_disease_mappings")
+      .select("*");
     if (error) throw error;
     return data || [];
   },
 
   addMapping: async (mapping: any) => {
-    const { error } = await supabase.from('symptom_disease_mappings').insert({
-      symptom:    mapping.symptom,
-      disease:    mapping.disease,
-      severity:   mapping.severity,
-      dosha:      mapping.dosha,
-      source:     mapping.source,
+    const { error } = await supabase.from("symptom_disease_mappings").insert({
+      symptom: mapping.symptom,
+      disease: mapping.disease,
+      severity: mapping.severity,
+      dosha: mapping.dosha,
+      source: mapping.source,
       created_at: new Date().toISOString(),
     });
     if (error) throw error;
   },
 };
 
-
-
-export const storage = {
-
-  savePrakriti: async (userId: string, prakriti: any) => {
-    await userService.savePrakriti(userId, prakriti);
+export const chatSessionService = {
+  saveSession: async (
+    userId: string,
+    session: {
+      id: string;
+      title: string;
+      date: string;
+      messageCount: number;
+      messages: any[];
+    },
+  ) => {
+    const { error } = await supabase.from("chat_sessions").upsert(
+      {
+        id: session.id,
+        user_id: userId,
+        title: session.title,
+        date: session.date,
+        message_count: session.messageCount,
+        messages: session.messages,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw error;
   },
 
-  getPrakriti: async (userId: string) => {
-    return await userService.getPrakriti(userId);
+  getSessions: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      date: row.date,
+      messageCount: row.message_count,
+      messages: row.messages,
+    }));
   },
 
-  saveHistory: async (userId: string, prediction: any) => {
-    await predictionService.save(userId, prediction);
+  deleteSession: async (sessionId: string) => {
+    const { error } = await supabase
+      .from("chat_sessions")
+      .delete()
+      .eq("id", sessionId);
+    if (error) throw error;
   },
 
-  getHistory: async (userId: string) => {
-    return await predictionService.getHistory(userId);
+  saveBookmark: async (
+    userId: string,
+    bookmark: {
+      id: string;
+      question: string;
+      answer: string;
+      date: string;
+      detectedLanguage?: string;
+    },
+  ) => {
+    const { error } = await supabase.from("chat_bookmarks").insert({
+      id: bookmark.id,
+      user_id: userId,
+      question: bookmark.question,
+      answer: bookmark.answer,
+      date: bookmark.date,
+      detected_language: bookmark.detectedLanguage ?? null,
+      created_at: new Date().toISOString(),
+    });
+    if (error) throw error;
   },
 
-  clearHistory: async (userId: string) => {
-    await predictionService.clearAll(userId);
+  getBookmarks: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("chat_bookmarks")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      question: row.question,
+      answer: row.answer,
+      date: row.date,
+      detectedLanguage: row.detected_language,
+    }));
+  },
+
+  deleteBookmark: async (bookmarkId: string) => {
+    const { error } = await supabase
+      .from("chat_bookmarks")
+      .delete()
+      .eq("id", bookmarkId);
+    if (error) throw error;
   },
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
