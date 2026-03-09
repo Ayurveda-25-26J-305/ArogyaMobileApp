@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { Asset } from "expo-asset";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 const T = {
   leaf:"#22543d", leafMid:"#276749", sage:"#48bb78", sagePale:"#d4edda",
@@ -217,6 +217,7 @@ export default function DietScreen(){
         await asset.downloadAsync();
         const text=await FileSystem.readAsStringAsync(asset.localUri!);
         setTasteMap(parseCSV(text));
+        console.log("Taste map loaded with",tasteMap.size);
       }catch{setTasteMap(new Map());}
     })();
   },[]);
@@ -229,11 +230,22 @@ export default function DietScreen(){
   },[result,formData]);
 
   const rasaGrouped:RasaGrouped=useMemo(()=>{
-    const g:RasaGrouped={sweet:[],sour:[],salty:[],pungent:[],bitter:[],astringent:[],unknown:[]};
-    if(!result?.meal_plan)return g;
-    result.meal_plan.forEach(item=>{const k=tasteMap.get(norm(item.dish));(g[(!tasteMap.size||!k)?"unknown":k]=g[(!tasteMap.size||!k)?"unknown":k]||[]).push(item);});
-    return g;
-  },[tasteMap,result]);
+  const g:RasaGrouped={sweet:[],sour:[],salty:[],pungent:[],bitter:[],astringent:[],unknown:[]};
+  if(!result?.meal_plan)return g;
+  result.meal_plan.forEach(item=>{
+    // 1. Try exact match
+    let k=tasteMap.get(norm(item.dish));
+    // 2. Fallback: partial match (CSV name contains dish name or vice versa)
+    if(!k && tasteMap.size){
+      const normDish=norm(item.dish);
+      for(const [csvFood,taste] of tasteMap.entries()){
+        if(csvFood.includes(normDish)||normDish.includes(csvFood)){k=taste;break;}
+      }
+    }
+    (g[(!tasteMap.size||!k)?"unknown":k]=g[(!tasteMap.size||!k)?"unknown":k]||[]).push(item);
+  });
+  return g;
+},[tasteMap,result]);
 
   const stepValid=[
     ()=>!!formData.age&&!!formData.gender&&!!formData.weight&&!!formData.height,
@@ -246,7 +258,7 @@ export default function DietScreen(){
     setLoading(true);setError(null);
     try{
       const payload={age:parseInt(formData.age),gender:formData.gender.toLowerCase(),weight_kg:parseFloat(formData.weight),height_cm:parseFloat(formData.height),disease:formData.disease.toLowerCase(),meal_category:formData.mealCategory.toLowerCase(),diet_preference:formData.foodPreference.toLowerCase()};
-      const response=await fetch("http://172.20.10.3:5001/predict_diet",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const response=await fetch("http://172.20.10.4:5001/predict_diet",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const data=await response.json();
       if(data.success){
         setResult({user_bmi:data.user_info.bmi,predicted_bmi_category:data.user_info.bmi_category,meal_category:data.meal_info.meal_category,diet_preference:data.meal_info.diet_preference,disease:data.meal_info.disease,foods_to_avoid:data.foods_to_avoid,
