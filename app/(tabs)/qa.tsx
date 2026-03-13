@@ -1,27 +1,35 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import { Ionicons } from "@expo/vector-icons";
+import { Audio } from "expo-av";
+import * as Clipboard from "expo-clipboard";
+import * as IntentLauncher from "expo-intent-launcher";
+import * as Print from "expo-print";
+import { useFocusEffect } from "expo-router";
+import * as Sharing from "expo-sharing";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Share,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-  Share,
-  Modal,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Clipboard from "expo-clipboard";
-import { Audio } from "expo-av";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
-import { useFocusEffect } from "expo-router";
-import { askQuestion, fetchStats } from "../../services/api";
-import { STORAGE_KEYS, generateFollowUps } from "../../utils/constants";
 import { API_BASE_URL } from "../../config";
+import { askQuestion, fetchStats } from "../../services/api";
+import {
+  chatSessionService,
+  supabase,
+  userService,
+} from "../../services/supabase";
+import {
+  PRAKRITI_SPECIFIC_ADVICE,
+  generateFollowUps,
+} from "../../utils/constants";
 
 // ─── TypeScript interfaces ────────────────────────────────────────────────────
 
@@ -204,11 +212,22 @@ function IconButton({
   );
 }
 
+// ─── Season helper ────────────────────────────────────────────────────────────
+
+function getSeasonFromDate(date: Date): string {
+  const month = date.getMonth() + 1; // 1-12
+  if (month >= 3 && month <= 5) return "Spring";
+  if (month >= 6 && month <= 8) return "Summer";
+  if (month >= 9 && month <= 11) return "Autumn";
+  return "Winter";
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function QAScreen() {
   const scrollRef = useRef<ScrollView>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const webSpeechRef = useRef<any>(null);
+  const iosRecordingRef = useRef<Audio.Recording | null>(null);
 
   // Core chat state
   const [messages, setMessages] = useState<Message[]>([]);
@@ -243,58 +262,72 @@ export default function QAScreen() {
   // ── Bootstrap (run once on first mount) ─────────────────────────────────
   useEffect(() => {
     (async () => {
-      let uid = await AsyncStorage.getItem(STORAGE_KEYS.USER_ID);
-      if (!uid) {
-        uid = `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-        await AsyncStorage.setItem(STORAGE_KEYS.USER_ID, uid);
-      }
-      setUserId(uid);
-
-      const sessionsStr = await AsyncStorage.getItem(STORAGE_KEYS.SESSIONS);
-      if (sessionsStr) setMessages(JSON.parse(sessionsStr));
-
-      const historyStr = await AsyncStorage.getItem(STORAGE_KEYS.CHAT_HISTORY);
-      if (historyStr) setChatHistory(JSON.parse(historyStr));
-
-      const bookmarksStr = await AsyncStorage.getItem(STORAGE_KEYS.BOOKMARKS);
-      if (bookmarksStr) setBookmarks(JSON.parse(bookmarksStr));
-
       try {
-        const result = await fetchStats();
-        if (result.success) setStats(result.stats);
-      } catch (_) {}
+        // Get the logged-in user from Supabase Auth
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const uid = user?.id ?? `anon_${Date.now()}`;
+        setUserId(uid);
+
+        if (user?.id) {
+          // Load dominant dosha from users table
+          const profile = await userService.getPrakriti(user.id);
+          if (profile?.dominant) {
+            const season = getSeasonFromDate(new Date());
+            setUserProfile({
+              dominant_dosha: profile.dominant,
+              current_season: season,
+            });
+          }
+
+          // Load chat history from Supabase
+          const sessions = await chatSessionService.getSessions(user.id);
+          setChatHistory(sessions);
+
+          // Load bookmarks from Supabase
+          const bk = await chatSessionService.getBookmarks(user.id);
+          setBookmarks(bk);
+        }
+
+        try {
+          const result = await fetchStats();
+          if (result.success) setStats(result.stats);
+        } catch (_) {}
+      } catch (err) {
+        console.error("Bootstrap error:", err);
+      }
     })();
   }, []);
 
-  // ── Reload profile every time this tab comes into focus ───────────────────
+  // ── Reload profile whenever this tab comes into focus ─────────────────────
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE).then((str) => {
-        if (str) setUserProfile(JSON.parse(str));
-      });
+      (async () => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user?.id) return;
+        const profile = await userService.getPrakriti(user.id);
+        if (profile?.dominant) {
+          const season = getSeasonFromDate(new Date());
+          setUserProfile({
+            dominant_dosha: profile.dominant,
+            current_season: season,
+          });
+        }
+      })();
     }, []),
   );
-
-  // ── Persist session messages ──────────────────────────────────────────────
-  useEffect(() => {
-    if (messages.length > 0) {
-      AsyncStorage.setItem(
-        STORAGE_KEYS.SESSIONS,
-        JSON.stringify(messages.slice(-100)),
-      );
-    } else {
-      AsyncStorage.removeItem(STORAGE_KEYS.SESSIONS);
-    }
-  }, [messages]);
 
   const scrollToBottom = () => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  // ── Save current session to history ──────────────────────────────────────
+  // ── Save current session to Supabase ─────────────────────────────────────
   const saveCurrentSession = useCallback(
     async (msgs: Message[], sid: string) => {
-      if (msgs.length === 0) return;
+      if (msgs.length === 0 || !userId) return;
       const firstQ = msgs.find((m) => m.type === "question");
       if (!firstQ) return;
       const session: ChatSession = {
@@ -307,19 +340,16 @@ export default function QAScreen() {
         messageCount: msgs.filter((m) => m.type === "question").length,
         messages: msgs,
       };
-      setChatHistory((prev) => {
-        const updated = [session, ...prev.filter((s) => s.id !== sid)].slice(
-          0,
-          50,
-        );
-        AsyncStorage.setItem(
-          STORAGE_KEYS.CHAT_HISTORY,
-          JSON.stringify(updated),
-        );
-        return updated;
-      });
+      setChatHistory((prev) =>
+        [session, ...prev.filter((s) => s.id !== sid)].slice(0, 50),
+      );
+      try {
+        await chatSessionService.saveSession(userId, session);
+      } catch (err) {
+        console.error("Failed to save session:", err);
+      }
     },
-    [],
+    [userId],
   );
 
   // ── Start new chat ────────────────────────────────────────────────────────
@@ -327,7 +357,6 @@ export default function QAScreen() {
     await saveCurrentSession(messages, sessionId);
     setMessages([]);
     setSessionId(Date.now().toString());
-    await AsyncStorage.removeItem(STORAGE_KEYS.SESSIONS);
     setSidebarSearch("");
     setSidebarOpen(false);
   }, [messages, sessionId, saveCurrentSession]);
@@ -338,23 +367,18 @@ export default function QAScreen() {
       await saveCurrentSession(messages, sessionId);
       setMessages(session.messages);
       setSessionId(session.id);
-      await AsyncStorage.setItem(
-        STORAGE_KEYS.SESSIONS,
-        JSON.stringify(session.messages),
-      );
       setSidebarSearch("");
       setSidebarOpen(false);
     },
     [messages, sessionId, saveCurrentSession],
   );
 
-  // ── Delete a session from history ─────────────────────────────────────────
+  // ── Delete a session ──────────────────────────────────────────────────────
   const deleteSession = useCallback((id: string) => {
-    setChatHistory((prev) => {
-      const updated = prev.filter((s) => s.id !== id);
-      AsyncStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(updated));
-      return updated;
-    });
+    setChatHistory((prev) => prev.filter((s) => s.id !== id));
+    chatSessionService
+      .deleteSession(id)
+      .catch((err) => console.error("Failed to delete session:", err));
   }, []);
 
   // ── Send question ─────────────────────────────────────────────────────────
@@ -366,28 +390,49 @@ export default function QAScreen() {
       setLoading(true);
 
       const qMsg: Message = { id: Date.now(), type: "question", content: q };
-      setMessages((prev) => [...prev, qMsg]);
+      // Build updated array explicitly so we can save with both Q and A
+      const msgsWithQ = [...messages, qMsg];
+      setMessages(msgsWithQ);
       scrollToBottom();
 
       try {
         const data = await askQuestion(q, userId, userProfile);
         if (data.success || data.answer) {
           const followUps: string[] = data.follow_ups ?? generateFollowUps(q);
+
+          // Local personalized tip fallback using dominant dosha
+          let localTip: string | undefined = data.personalized_tips;
+          if (!localTip && userProfile?.dominant_dosha) {
+            const dosha =
+              userProfile.dominant_dosha.toLowerCase() as keyof typeof PRAKRITI_SPECIFIC_ADVICE;
+            const advice = PRAKRITI_SPECIFIC_ADVICE[dosha];
+            if (advice?.general?.length) {
+              const tip =
+                advice.general[
+                  Math.floor(Math.random() * advice.general.length)
+                ];
+              localTip = `(${userProfile.dominant_dosha} dosha) ${tip}`;
+            }
+          }
+
           const aMsg: Message = {
             id: Date.now() + 1,
             type: "answer",
             content: data.answer ?? "No answer returned.",
             citations: data.citations ?? [],
             validation: data.validation ?? null,
-            personalized: data.personalized ?? false,
+            personalized: data.personalized ?? !!localTip,
             userInfo: data.user_info ?? null,
             detectedLanguage: data.detected_language,
             detectedDosha: data.detected_dosha,
-            personalizedTips: data.personalized_tips,
+            personalizedTips: localTip,
             followUps,
             bookmarked: false,
           };
-          setMessages((prev) => [...prev, aMsg]);
+          const updatedMsgs = [...msgsWithQ, aMsg];
+          setMessages(updatedMsgs);
+          // Auto-save session to Supabase after every Q&A pair
+          await saveCurrentSession(updatedMsgs, sessionId);
         } else {
           throw new Error(data.message ?? "API error");
         }
@@ -405,7 +450,15 @@ export default function QAScreen() {
         scrollToBottom();
       }
     },
-    [input, loading, userId],
+    [
+      input,
+      loading,
+      userId,
+      messages,
+      sessionId,
+      saveCurrentSession,
+      userProfile,
+    ],
   );
 
   // ── Delete a single message ───────────────────────────────────────────────
@@ -578,37 +631,34 @@ export default function QAScreen() {
         date: new Date().toLocaleDateString("en-GB"),
         detectedLanguage: aMsg.detectedLanguage,
       };
-      setBookmarks((prev) => {
-        const updated = [item, ...prev];
-        AsyncStorage.setItem(STORAGE_KEYS.BOOKMARKS, JSON.stringify(updated));
-        return updated;
-      });
+      setBookmarks((prev) => [item, ...prev]);
       setMessages((prev) =>
         prev.map((m) => (m.id === aMsg.id ? { ...m, bookmarked: true } : m)),
       );
+      if (userId) {
+        chatSessionService
+          .saveBookmark(userId, item)
+          .catch((err) => console.error("Failed to save bookmark:", err));
+      }
       Alert.alert("Bookmarked", "Q&A pair saved to bookmarks.");
     },
-    [messages],
+    [messages, userId],
   );
 
   // ── Remove a bookmark ─────────────────────────────────────────────────────
   const removeBookmark = useCallback((id: string) => {
-    setBookmarks((prev) => {
-      const updated = prev.filter((b) => b.id !== id);
-      AsyncStorage.setItem(STORAGE_KEYS.BOOKMARKS, JSON.stringify(updated));
-      return updated;
-    });
+    setBookmarks((prev) => prev.filter((b) => b.id !== id));
+    chatSessionService
+      .deleteBookmark(id)
+      .catch((err) => console.error("Failed to delete bookmark:", err));
   }, []);
 
   // ── Toggle bookmark (save / unsave) ──────────────────────────────────────
   const toggleBookmark = useCallback(
     (aMsg: Message) => {
       if (aMsg.bookmarked) {
-        setBookmarks((prev) => {
-          const updated = prev.filter((b) => b.answer !== aMsg.content);
-          AsyncStorage.setItem(STORAGE_KEYS.BOOKMARKS, JSON.stringify(updated));
-          return updated;
-        });
+        const found = bookmarks.find((b) => b.answer === aMsg.content);
+        if (found) removeBookmark(found.id);
         setMessages((prev) =>
           prev.map((m) => (m.id === aMsg.id ? { ...m, bookmarked: false } : m)),
         );
@@ -616,26 +666,105 @@ export default function QAScreen() {
         addBookmark(aMsg);
       }
     },
-    [addBookmark],
+    [addBookmark, removeBookmark, bookmarks],
   );
 
-  // ── Voice recording ──────────────────────────────────────────────────────
-  const handleMicPress = async () => {
-    if (isRecording) {
-      await stopRecording();
-    } else {
-      await startRecording();
+  // ── Web speech recognition ────────────────────────────────────────────────
+  const startWebSpeech = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      Alert.alert(
+        "Not Supported",
+        "Your browser does not support speech recognition. Try Chrome.",
+      );
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0]?.[0]?.transcript ?? "";
+      if (transcript) {
+        setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      }
+    };
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = (e: any) => {
+      console.error("Web speech error:", e.error);
+      setIsRecording(false);
+      if (e.error !== "aborted") {
+        Alert.alert("Voice Error", `Speech recognition failed: ${e.error}`);
+      }
+    };
+    webSpeechRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  };
+
+  // ── Android speech intent (works in Expo Go) ─────────────────────────────
+  const startAndroidSpeech = async () => {
+    try {
+      setIsRecording(true);
+      const result = await IntentLauncher.startActivityAsync(
+        "android.speech.action.RECOGNIZE_SPEECH",
+        {
+          extra: {
+            "android.speech.extra.LANGUAGE_MODEL": "free_form",
+            "android.speech.extra.LANGUAGE": "en-US",
+            "android.speech.extra.PROMPT": "Speak now…",
+            "android.speech.extra.MAX_RESULTS": 1,
+          },
+        },
+      );
+      if (result.resultCode === -1) {
+        // RESULT_OK
+        const extra = result.extra as Record<string, any> | undefined;
+        const results =
+          extra?.["android.speech.extra.RESULTS"] ?? extra?.["results"];
+        const text = Array.isArray(results) ? results[0] : results;
+        if (text) {
+          setInput((prev) => (prev ? `${prev} ${text}` : text));
+        }
+      }
+    } catch (err) {
+      console.error("Android speech error:", err);
+      Alert.alert("Error", "Could not start speech recognition.");
+    } finally {
+      setIsRecording(false);
     }
   };
 
-  const startRecording = async () => {
+  const handleMicPress = async () => {
+    if (Platform.OS === "web") {
+      if (isRecording) {
+        webSpeechRef.current?.stop();
+        setIsRecording(false);
+      } else {
+        startWebSpeech();
+      }
+      return;
+    }
+    if (Platform.OS === "android") {
+      await startAndroidSpeech();
+      return;
+    }
+    // iOS — record with expo-av and send to backend
+    if (isRecording) {
+      await stopIOSRecording();
+    } else {
+      await startIOSRecording();
+    }
+  };
+
+  // ── iOS: record audio then transcribe via backend ─────────────────────────
+  const startIOSRecording = async () => {
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Permission Needed",
-          "Please grant microphone access to use voice input.",
-        );
+        Alert.alert("Permission Needed", "Please grant microphone access.");
         return;
       }
       await Audio.setAudioModeAsync({
@@ -645,47 +774,57 @@ export default function QAScreen() {
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
-      recordingRef.current = recording;
+      iosRecordingRef.current = recording;
       setIsRecording(true);
-    } catch (_) {
-      Alert.alert("Error", "Could not start voice recording.");
+    } catch (err) {
+      console.error("iOS start recording error:", err);
+      Alert.alert("Error", "Could not start recording.");
     }
   };
 
-  const stopRecording = async () => {
-    if (!recordingRef.current) return;
+  const stopIOSRecording = async () => {
+    if (!iosRecordingRef.current) return;
     setIsRecording(false);
     setIsTranscribing(true);
     try {
-      await recordingRef.current.stopAndUnloadAsync();
+      const rec = iosRecordingRef.current;
+      iosRecordingRef.current = null;
+      await rec.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
-      if (!uri) return;
-
+      const uri = rec.getURI();
+      if (!uri) {
+        Alert.alert("Error", "Recording file not found.");
+        return;
+      }
       const formData = new FormData();
       formData.append("audio", {
         uri,
         type: "audio/m4a",
         name: "voice.m4a",
       } as any);
-
-      const response = await fetch(`${API_BASE_URL}/api/transcribe`, {
-        method: "POST",
-        headers: { "ngrok-skip-browser-warning": "true" },
-        body: formData,
-      });
+      let response: Response;
+      try {
+        response = await fetch(`${API_BASE_URL}/api/transcribe`, {
+          method: "POST",
+          headers: { "ngrok-skip-browser-warning": "true" },
+          body: formData,
+        });
+      } catch {
+        Alert.alert(
+          "Backend Offline",
+          "iOS voice input requires the backend to be running. Update the URL in config.ts and restart the backend.",
+        );
+        return;
+      }
       const data = await response.json();
       if (data.text) {
         setInput((prev) => (prev ? `${prev} ${data.text}` : data.text));
       } else {
-        Alert.alert("Transcription failed", "Could not convert voice to text.");
+        Alert.alert("Transcription failed", "No text returned from backend.");
       }
-    } catch (_) {
-      Alert.alert(
-        "Unavailable",
-        "Voice transcription needs a /api/transcribe endpoint on the backend.",
-      );
+    } catch (err) {
+      console.error("iOS stop recording error:", err);
+      Alert.alert("Error", `Transcription failed: ${err}`);
     } finally {
       setIsTranscribing(false);
     }
@@ -698,10 +837,7 @@ export default function QAScreen() {
       {
         text: "Clear",
         style: "destructive",
-        onPress: async () => {
-          setMessages([]);
-          await AsyncStorage.removeItem(STORAGE_KEYS.SESSIONS);
-        },
+        onPress: () => setMessages([]),
       },
     ]);
   };
@@ -1388,9 +1524,37 @@ export default function QAScreen() {
               </View>
             )}
             {!!userProfile && (
-              <View className="bg-[#e8f5e9] border border-[#a5d6a7] px-2.5 py-1 rounded-full flex-row items-center gap-1">
-                <Ionicons name="person" size={11} color="#2d5016" />
-                <Text className="text-[11px] text-[#2d5016] font-semibold capitalize">
+              <View
+                style={{
+                  backgroundColor:
+                    (DOSHA_COLORS[userProfile.dominant_dosha?.toLowerCase()] ??
+                      "#2d5016") + "18",
+                  borderColor:
+                    DOSHA_COLORS[userProfile.dominant_dosha?.toLowerCase()] ??
+                    "#a5d6a7",
+                }}
+                className="border px-2.5 py-1 rounded-full flex-row items-center gap-1"
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor:
+                      DOSHA_COLORS[userProfile.dominant_dosha?.toLowerCase()] ??
+                      "#2d5016",
+                  }}
+                />
+                <Text
+                  style={{
+                    color:
+                      DOSHA_COLORS[userProfile.dominant_dosha?.toLowerCase()] ??
+                      "#2d5016",
+                    fontSize: 11,
+                    fontWeight: "700",
+                  }}
+                  className="capitalize"
+                >
                   {userProfile.dominant_dosha} · {userProfile.current_season}
                 </Text>
               </View>
