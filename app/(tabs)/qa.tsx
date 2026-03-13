@@ -1514,24 +1514,26 @@ export default function QAScreen() {
           editable={!loading && !isRecording}
         />
 
-        {/* Mic button */}
-        <TouchableOpacity
-          className={`w-10 h-10 rounded-full items-center justify-center ${
-            isRecording ? "bg-red-500" : "bg-[#e8f5e9]"
-          }`}
-          onPress={handleMicPress}
-          disabled={isTranscribing || loading}
-        >
-          {isTranscribing ? (
-            <ActivityIndicator size="small" color="#2d5016" />
-          ) : (
-            <Ionicons
-              name={isRecording ? "stop" : "mic-outline"}
-              size={18}
-              color={isRecording ? "#fff" : "#2d5016"}
-            />
-          )}
-        </TouchableOpacity>
+        {/* Mic button — native only (Audio API not available on web) */}
+        {Platform.OS !== "web" && (
+          <TouchableOpacity
+            className={`w-10 h-10 rounded-full items-center justify-center ${
+              isRecording ? "bg-red-500" : "bg-[#e8f5e9]"
+            }`}
+            onPress={handleMicPress}
+            disabled={isTranscribing || loading}
+          >
+            {isTranscribing ? (
+              <ActivityIndicator size="small" color="#2d5016" />
+            ) : (
+              <Ionicons
+                name={isRecording ? "stop" : "mic-outline"}
+                size={18}
+                color={isRecording ? "#fff" : "#2d5016"}
+              />
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Send button */}
         <TouchableOpacity

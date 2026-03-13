@@ -10,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { DIET_API_URL } from "../../config";
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
 const T = {
@@ -283,7 +284,7 @@ export default function DietScreen() {
         meal_category: formData.mealCategory.toLowerCase(),
         diet_preference: formData.foodPreference.toLowerCase(),
       };
-      const response = await fetch("http://localhost:5001/predict_diet", {
+      const response = await fetch(`${DIET_API_URL}/predict_diet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
