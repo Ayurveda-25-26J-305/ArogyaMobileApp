@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
+import { Platform } from "react-native";
 
 const SUPABASE_URL = 'https://davxldqvxxtejapdjvzn.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE';
@@ -16,11 +16,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   },
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// AUTH SERVICE
-// ═══════════════════════════════════════════════════════════════════════════
 export const authService = {
   register: async (email: string, password: string, name: string) => {
+    // Step 1: Create auth user
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -30,15 +28,15 @@ export const authService = {
     });
 
     if (error) {
-      console.error('Auth signup error:', error);
+      console.error("Auth signup error:", error);
       throw error;
     }
 
     if (!data.user) {
-      throw new Error('No user returned from signup');
+      throw new Error("No user returned from signup");
     }
 
-    console.log('Auth user created:', data.user.id);
+    console.log("Auth user created:", data.user.id);
 
     if (!data.session) {
       console.log('Email confirmation required — skipping profile insert until confirmed');
@@ -58,16 +56,19 @@ export const authService = {
     });
 
     if (insertError) {
-      console.error('Failed to create user profile:', insertError);
+      console.error("Failed to create user profile:", insertError);
       throw insertError;
     }
 
-    console.log('User profile created in users table');
+    console.log("User profile created in users table");
     return data.user;
   },
 
   login: async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) throw error;
     return data.user;
   },
@@ -101,9 +102,9 @@ export const authService = {
 export const userService = {
   getProfile: async (userId: string) => {
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
+      .from("users")
+      .select("*")
+      .eq("id", userId)
       .single();
     if (error) throw error;
     return data;
@@ -111,9 +112,9 @@ export const userService = {
 
   updateProfile: async (userId: string, updates: any) => {
     const { error } = await supabase
-      .from('users')
+      .from("users")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq("id", userId);
     if (error) throw error;
   },
 
@@ -128,7 +129,7 @@ export const userService = {
         prakriti_updated: null,
       }).eq('id', userId);
       if (error) throw error;
-      console.log('✅ Prakriti cleared from Supabase');
+      console.log('Prakriti cleared from Supabase');
       return;
     }
 
@@ -142,26 +143,28 @@ export const userService = {
     }).eq('id', userId);
     
     if (error) {
-      console.error('❌ Error saving Prakriti:', error);
+      console.error('Error saving Prakriti:', error);
       throw error;
     }
-    console.log('✅ Prakriti saved to Supabase');
+    console.log('Prakriti saved to Supabase');
   },
 
   getPrakriti: async (userId: string) => {
     const { data, error } = await supabase
-      .from('users')
-      .select('prakriti_vata, prakriti_pitta, prakriti_kapha, prakriti_dominant')
-      .eq('id', userId)
+      .from("users")
+      .select(
+        "prakriti_vata, prakriti_pitta, prakriti_kapha, prakriti_dominant",
+      )
+      .eq("id", userId)
       .single();
     
     if (error) {
-      console.error('❌ Error loading Prakriti:', error);
+      console.error('Error loading Prakriti:', error);
       return null;
     }
     
     if (!data?.prakriti_dominant) {
-      console.log('ℹ️ No Prakriti found for user');
+      console.log('No Prakriti found for user');
       return null;
     }
     
@@ -172,14 +175,11 @@ export const userService = {
       dominant: data.prakriti_dominant,
     };
     
-    console.log('✅ Prakriti loaded:', prakriti);
+    console.log('Prakriti loaded:', prakriti);
     return prakriti;
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PREDICTION SERVICE
-// ═══════════════════════════════════════════════════════════════════════════
 export const predictionService = {
   save: async (userId: string, prediction: any) => {
     const { error } = await supabase.from('predictions').insert({
@@ -197,10 +197,10 @@ export const predictionService = {
 
   getHistory: async (userId: string) => {
     const { data, error } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("predictions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
     return data || [];
@@ -217,9 +217,7 @@ export const predictionService = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MEDICINE SERVICE
-// ═══════════════════════════════════════════════════════════════════════════
+
 export const medicineService = {
   getByDisease: async (disease: string) => {
     const { data, error } = await supabase.from('medicines').select('*').eq('disease', disease);
@@ -234,7 +232,7 @@ export const medicineService = {
   },
 
   getAll: async () => {
-    const { data, error } = await supabase.from('medicines').select('*');
+    const { data, error } = await supabase.from("medicines").select("*");
     if (error) throw error;
     return data || [];
   },
@@ -255,9 +253,7 @@ export const medicineService = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DIET SERVICE
-// ═══════════════════════════════════════════════════════════════════════════
+
 export const dietService = {
   getPlanByDosha: async (dosha: string) => {
     const { data, error } = await supabase.from('diet_plans').select('*').ilike('dosha', `%${dosha}%`);
@@ -267,16 +263,16 @@ export const dietService = {
 
   getPlanByDiseaseAndDosha: async (disease: string, dosha: string) => {
     const { data, error } = await supabase
-      .from('diet_plans')
-      .select('*')
-      .eq('disease', disease)
-      .ilike('dosha', `%${dosha}%`);
+      .from("diet_plans")
+      .select("*")
+      .eq("disease", disease)
+      .ilike("dosha", `%${dosha}%`);
     if (error) throw error;
     return data || [];
   },
 
   getAllFoods: async () => {
-    const { data, error } = await supabase.from('ayurvedic_foods').select('*');
+    const { data, error } = await supabase.from("ayurvedic_foods").select("*");
     if (error) throw error;
     return data || [];
   },
@@ -325,10 +321,10 @@ export const qaService = {
 
   getUserHistory: async (userId: string) => {
     const { data, error } = await supabase
-      .from('qa_history')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("qa_history")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
     return data || [];
@@ -336,8 +332,8 @@ export const qaService = {
 
   searchKnowledge: async (keyword: string) => {
     const { data, error } = await supabase
-      .from('qa_knowledge')
-      .select('*')
+      .from("qa_knowledge")
+      .select("*")
       .or(`question.ilike.%${keyword}%,answer.ilike.%${keyword}%`);
     if (error) throw error;
     return data || [];
@@ -355,12 +351,10 @@ export const qaService = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// NER SERVICE
-// ═══════════════════════════════════════════════════════════════════════════
+
 export const nerService = {
   getAll: async () => {
-    const { data, error } = await supabase.from('ner_data').select('*');
+    const { data, error } = await supabase.from("ner_data").select("*");
     if (error) throw error;
     return data || [];
   },
@@ -403,9 +397,6 @@ export const nerService = {
   },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// LEGACY STORAGE WRAPPER (for backward compatibility with api.ts)
-// ═══════════════════════════════════════════════════════════════════════════
 export const storage = {
   savePrakriti: userService.savePrakriti,
   getPrakriti: userService.getPrakriti,
