@@ -2,10 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 
-const SUPABASE_URL = "https://davxldqvxxtejapdjvzn.supabase.co";
-const SUPABASE_ANON = "sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE";
+const SUPABASE_URL = 'https://davxldqvxxtejapdjvzn.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_F5YVtzxylKvjx8OKnU5KTA_5-eXD1IE';
 
-const isWeb = Platform.OS === "web";
+const isWeb = Platform.OS === 'web';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
@@ -38,12 +38,8 @@ export const authService = {
 
     console.log("Auth user created:", data.user.id);
 
-    // Step 2: Explicitly apply the session so RLS auth.uid() resolves correctly
     if (!data.session) {
-      // Email confirmation is enabled — profile will be created after the user confirms
-      console.log(
-        "Email confirmation required — skipping profile insert until confirmed",
-      );
+      console.log('Email confirmation required — skipping profile insert until confirmed');
       return data.user;
     }
 
@@ -52,8 +48,7 @@ export const authService = {
       refresh_token: data.session.refresh_token,
     });
 
-    // Step 3: Create profile in users table
-    const { error: insertError } = await supabase.from("users").insert({
+    const { error: insertError } = await supabase.from('users').insert({
       id: data.user.id,
       name,
       email,
@@ -101,6 +96,9 @@ export const authService = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// USER SERVICE (INCLUDES PRAKRITI)
+// ═══════════════════════════════════════════════════════════════════════════
 export const userService = {
   getProfile: async (userId: string) => {
     const { data, error } = await supabase
@@ -122,31 +120,33 @@ export const userService = {
 
   savePrakriti: async (userId: string, prakriti: any) => {
     if (!prakriti) {
-      const { error } = await supabase
-        .from("users")
-        .update({
-          prakriti_vata: null,
-          prakriti_pitta: null,
-          prakriti_kapha: null,
-          prakriti_dominant: null,
-          prakriti_updated: null,
-        })
-        .eq("id", userId);
+      // Clear prakriti
+      const { error } = await supabase.from('users').update({
+        prakriti_vata: null,
+        prakriti_pitta: null,
+        prakriti_kapha: null,
+        prakriti_dominant: null,
+        prakriti_updated: null,
+      }).eq('id', userId);
       if (error) throw error;
+      console.log('Prakriti cleared from Supabase');
       return;
     }
 
-    const { error } = await supabase
-      .from("users")
-      .update({
-        prakriti_vata: parseFloat(prakriti.vata),
-        prakriti_pitta: parseFloat(prakriti.pitta),
-        prakriti_kapha: parseFloat(prakriti.kapha),
-        prakriti_dominant: prakriti.dominant,
-        prakriti_updated: new Date().toISOString(),
-      })
-      .eq("id", userId);
-    if (error) throw error;
+    // Save prakriti
+    const { error } = await supabase.from('users').update({
+      prakriti_vata: parseFloat(prakriti.vata),
+      prakriti_pitta: parseFloat(prakriti.pitta),
+      prakriti_kapha: parseFloat(prakriti.kapha),
+      prakriti_dominant: prakriti.dominant,
+      prakriti_updated: new Date().toISOString(),
+    }).eq('id', userId);
+    
+    if (error) {
+      console.error('Error saving Prakriti:', error);
+      throw error;
+    }
+    console.log('Prakriti saved to Supabase');
   },
 
   getPrakriti: async (userId: string) => {
@@ -157,35 +157,32 @@ export const userService = {
       )
       .eq("id", userId)
       .single();
+    
     if (error) {
-      console.error("[getPrakriti] Supabase error:", error.message, error.code);
+      console.error('Error loading Prakriti:', error);
       return null;
     }
-    if (!data) {
-      console.warn("[getPrakriti] No row found for userId:", userId);
+    
+    if (!data?.prakriti_dominant) {
+      console.log('No Prakriti found for user');
       return null;
     }
-    if (!data.prakriti_dominant) {
-      console.warn(
-        "[getPrakriti] prakriti_dominant is NULL for userId:",
-        userId,
-        "| row:",
-        data,
-      );
-      return null;
-    }
-    return {
-      vata: data.prakriti_vata?.toString() || "0.33",
-      pitta: data.prakriti_pitta?.toString() || "0.33",
-      kapha: data.prakriti_kapha?.toString() || "0.33",
+    
+    const prakriti = {
+      vata: data.prakriti_vata?.toString() || '0.33',
+      pitta: data.prakriti_pitta?.toString() || '0.33',
+      kapha: data.prakriti_kapha?.toString() || '0.33',
       dominant: data.prakriti_dominant,
     };
+    
+    console.log('Prakriti loaded:', prakriti);
+    return prakriti;
   },
 };
 
 export const predictionService = {
   save: async (userId: string, prediction: any) => {
-    const { error } = await supabase.from("predictions").insert({
+    const { error } = await supabase.from('predictions').insert({
       user_id: userId,
       predicted_disease: prediction.predicted_disease,
       confidence: prediction.confidence,
@@ -210,37 +207,26 @@ export const predictionService = {
   },
 
   delete: async (predictionId: string) => {
-    const { error } = await supabase
-      .from("predictions")
-      .delete()
-      .eq("id", predictionId);
+    const { error } = await supabase.from('predictions').delete().eq('id', predictionId);
     if (error) throw error;
   },
 
   clearAll: async (userId: string) => {
-    const { error } = await supabase
-      .from("predictions")
-      .delete()
-      .eq("user_id", userId);
+    const { error } = await supabase.from('predictions').delete().eq('user_id', userId);
     if (error) throw error;
   },
 };
 
+
 export const medicineService = {
   getByDisease: async (disease: string) => {
-    const { data, error } = await supabase
-      .from("medicines")
-      .select("*")
-      .eq("disease", disease);
+    const { data, error } = await supabase.from('medicines').select('*').eq('disease', disease);
     if (error) throw error;
     return data || [];
   },
 
   getByDosha: async (dosha: string) => {
-    const { data, error } = await supabase
-      .from("medicines")
-      .select("*")
-      .ilike("dosha", `%${dosha}%`);
+    const { data, error } = await supabase.from('medicines').select('*').ilike('dosha', `%${dosha}%`);
     if (error) throw error;
     return data || [];
   },
@@ -252,7 +238,7 @@ export const medicineService = {
   },
 
   add: async (medicine: any) => {
-    const { error } = await supabase.from("medicines").insert({
+    const { error } = await supabase.from('medicines').insert({
       name: medicine.name,
       sanskrit_name: medicine.sanskrit_name,
       disease: medicine.disease,
@@ -267,12 +253,10 @@ export const medicineService = {
   },
 };
 
+
 export const dietService = {
   getPlanByDosha: async (dosha: string) => {
-    const { data, error } = await supabase
-      .from("diet_plans")
-      .select("*")
-      .ilike("dosha", `%${dosha}%`);
+    const { data, error } = await supabase.from('diet_plans').select('*').ilike('dosha', `%${dosha}%`);
     if (error) throw error;
     return data || [];
   },
@@ -294,7 +278,7 @@ export const dietService = {
   },
 
   addPlan: async (plan: any) => {
-    const { error } = await supabase.from("diet_plans").insert({
+    const { error } = await supabase.from('diet_plans').insert({
       disease: plan.disease,
       dosha: plan.dosha,
       meal_type: plan.meal_type,
@@ -308,7 +292,7 @@ export const dietService = {
   },
 
   addFood: async (food: any) => {
-    const { error } = await supabase.from("ayurvedic_foods").insert({
+    const { error } = await supabase.from('ayurvedic_foods').insert({
       name: food.name,
       rasa: food.rasa,
       virya: food.virya,
@@ -321,9 +305,12 @@ export const dietService = {
   },
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// QA SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
 export const qaService = {
   saveQA: async (userId: string, question: string, answer: string) => {
-    const { error } = await supabase.from("qa_history").insert({
+    const { error } = await supabase.from('qa_history').insert({
       user_id: userId,
       question,
       answer,
@@ -353,7 +340,7 @@ export const qaService = {
   },
 
   addKnowledge: async (qa: any) => {
-    const { error } = await supabase.from("qa_knowledge").insert({
+    const { error } = await supabase.from('qa_knowledge').insert({
       question: qa.question,
       answer: qa.answer,
       source: qa.source,
@@ -364,6 +351,7 @@ export const qaService = {
   },
 };
 
+
 export const nerService = {
   getAll: async () => {
     const { data, error } = await supabase.from("ner_data").select("*");
@@ -372,16 +360,13 @@ export const nerService = {
   },
 
   getBySource: async (source: string) => {
-    const { data, error } = await supabase
-      .from("ner_data")
-      .select("*")
-      .eq("source", source);
+    const { data, error } = await supabase.from('ner_data').select('*').eq('source', source);
     if (error) throw error;
     return data || [];
   },
 
   add: async (ner: any) => {
-    const { error } = await supabase.from("ner_data").insert({
+    const { error } = await supabase.from('ner_data').insert({
       sentence: ner.sentence,
       entity_text: ner.entity_text,
       entity_label: ner.entity_label,
@@ -394,15 +379,13 @@ export const nerService = {
   },
 
   getSymptomMappings: async () => {
-    const { data, error } = await supabase
-      .from("symptom_disease_mappings")
-      .select("*");
+    const { data, error } = await supabase.from('symptom_disease_mappings').select('*');
     if (error) throw error;
     return data || [];
   },
 
   addMapping: async (mapping: any) => {
-    const { error } = await supabase.from("symptom_disease_mappings").insert({
+    const { error } = await supabase.from('symptom_disease_mappings').insert({
       symptom: mapping.symptom,
       disease: mapping.disease,
       severity: mapping.severity,
@@ -414,100 +397,10 @@ export const nerService = {
   },
 };
 
-export const chatSessionService = {
-  saveSession: async (
-    userId: string,
-    session: {
-      id: string;
-      title: string;
-      date: string;
-      messageCount: number;
-      messages: any[];
-    },
-  ) => {
-    const { error } = await supabase.from("chat_sessions").upsert(
-      {
-        id: session.id,
-        user_id: userId,
-        title: session.title,
-        date: session.date,
-        message_count: session.messageCount,
-        messages: session.messages,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-    if (error) throw error;
-  },
-
-  getSessions: async (userId: string) => {
-    const { data, error } = await supabase
-      .from("chat_sessions")
-      .select("*")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false })
-      .limit(50);
-    if (error) throw error;
-    return (data || []).map((row: any) => ({
-      id: row.id,
-      title: row.title,
-      date: row.date,
-      messageCount: row.message_count,
-      messages: row.messages,
-    }));
-  },
-
-  deleteSession: async (sessionId: string) => {
-    const { error } = await supabase
-      .from("chat_sessions")
-      .delete()
-      .eq("id", sessionId);
-    if (error) throw error;
-  },
-
-  saveBookmark: async (
-    userId: string,
-    bookmark: {
-      id: string;
-      question: string;
-      answer: string;
-      date: string;
-      detectedLanguage?: string;
-    },
-  ) => {
-    const { error } = await supabase.from("chat_bookmarks").insert({
-      id: bookmark.id,
-      user_id: userId,
-      question: bookmark.question,
-      answer: bookmark.answer,
-      date: bookmark.date,
-      detected_language: bookmark.detectedLanguage ?? null,
-      created_at: new Date().toISOString(),
-    });
-    if (error) throw error;
-  },
-
-  getBookmarks: async (userId: string) => {
-    const { data, error } = await supabase
-      .from("chat_bookmarks")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map((row: any) => ({
-      id: row.id,
-      question: row.question,
-      answer: row.answer,
-      date: row.date,
-      detectedLanguage: row.detected_language,
-    }));
-  },
-
-  deleteBookmark: async (bookmarkId: string) => {
-    const { error } = await supabase
-      .from("chat_bookmarks")
-      .delete()
-      .eq("id", bookmarkId);
-    if (error) throw error;
-  },
+export const storage = {
+  savePrakriti: userService.savePrakriti,
+  getPrakriti: userService.getPrakriti,
+  saveHistory: predictionService.save,
+  getHistory: predictionService.getHistory,
+  clearHistory: predictionService.clearAll,
 };

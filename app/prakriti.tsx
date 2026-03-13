@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { storage, authService } from '../services/supabase';
+import { userService, authService } from '../services/supabase';
 
 const QUESTIONS = [
   {
@@ -348,11 +348,15 @@ export default function PrakritiScreen() {
 
     try {
       const user = await authService.currentUser();
-      if (user) {
-        await storage.savePrakriti(user.id, prakriti);
+     if (user) {
+        // ✅ FIXED: Use userService.savePrakriti instead of storage
+        await userService.savePrakriti(user.id, prakriti);
+        console.log('✅ Prakriti saved successfully to Supabase');
+      } else {
+        console.warn('⚠️ No user logged in - cannot save prakriti');
       }
     } catch (e) {
-      console.log('Error saving prakriti:', e);
+      console.error('❌ Error saving prakriti:', e);
     }
 
     const info = DOSHA_INFO[dominant];
