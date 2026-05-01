@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -324,6 +324,7 @@ export default function PrakritiScreen() {
     kapha: string;
     confidence: string;
   }>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleAnswer = (dosha: string, weight: number) => {
     const newAnswers = { ...answers, [currentQ]: { dosha, weight } };
@@ -368,17 +369,16 @@ export default function PrakritiScreen() {
       confidence: confidence > 0.2 ? 'HIGH' : confidence > 0.1 ? 'MODERATE' : 'LOW',
     };
 
+    setSaving(true);
     try {
       const user = await authService.currentUser();
-     if (user) {
-        // ✅ FIXED: Use userService.savePrakriti instead of storage
+      if (user) {
         await userService.savePrakriti(user.id, prakriti);
-        console.log('✅ Prakriti saved successfully to Supabase');
-      } else {
-        console.warn('⚠️ No user logged in - cannot save prakriti');
       }
     } catch (e) {
-      console.error('❌ Error saving prakriti:', e);
+      console.error('Error saving prakriti:', e);
+    } finally {
+      setSaving(false);
     }
 
     setResult(prakriti);
@@ -387,6 +387,15 @@ export default function PrakritiScreen() {
   const goBack = () => {
     if (currentQ > 0) setCurrentQ(currentQ - 1);
   };
+
+  if (saving) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#f1f8e9', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+        <ActivityIndicator size="large" color="#2d5016" />
+        <Text style={{ fontSize: 16, color: '#2d5016', fontWeight: '600' }}>Saving your Prakriti…</Text>
+      </View>
+    );
+  }
 
   if (result) {
     const dominant = result.dominant as keyof typeof DOSHA_INFO;
@@ -490,6 +499,20 @@ export default function PrakritiScreen() {
         >
           <Text style={styles.startBtnText}>Start Disease Prediction</Text>
           <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.retakeBtn}
+          onPress={() => {
+            setResult(null);
+            setAnswers({});
+            setCurrentQ(0);
+            setShowIntro(false);
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="refresh" size={16} color="#2d5016" />
+          <Text style={styles.retakeBtnText}>Retake Assessment</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -754,6 +777,8 @@ const styles = StyleSheet.create({
   healthText: { fontSize: 14, color: '#444', flex: 1, lineHeight: 20 },
   tag: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
   tagText: { fontSize: 12, fontWeight: '600' },
+  retakeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, borderWidth: 2, borderColor: '#2d5016', backgroundColor: '#fff', marginBottom: 12 },
+  retakeBtnText: { fontSize: 15, fontWeight: '700', color: '#2d5016' },
   introHealthDivider: { height: 1, backgroundColor: '#e8f5e9', marginVertical: 12 },
   introHealthLabel: { fontSize: 12, fontWeight: '700', color: '#888', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
   introHealthRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
