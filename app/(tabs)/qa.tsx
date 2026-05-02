@@ -93,6 +93,10 @@ const DOSHA_COLORS: Record<string, string> = {
   kapha: "#26a69a",
 };
 
+const FOLLOW_UP_RE =
+  /\b(side\s*effects?|dosage|dose|combine|combination|interactions?|safe|risk|when|how\s*often|can\s*i|what\s*about)\b/i;
+const PRONOUN_ONLY_RE = /\b(it|this|that|these|those|they|them|its|their)\b/i;
+
 function ConfidenceBadge({
   confidence,
   level,
@@ -381,11 +385,61 @@ export default function QAScreen() {
       .catch((err) => console.error("Failed to delete session:", err));
   }, []);
 
+  const confirmDeleteSession = useCallback(
+    (id: string) => {
+      if (Platform.OS === "web") {
+        if (window.confirm("Remove this chat from history?")) {
+          deleteSession(id);
+        }
+        return;
+      }
+
+      Alert.alert("Delete Session", "Remove this chat from history?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteSession(id),
+        },
+      ]);
+    },
+    [deleteSession],
+  );
+
+  const buildQuestion = useCallback(
+    (q: string, explicitContext?: string): string => {
+      const trimmed = q.trim();
+      if (!trimmed) return q;
+
+      // Avoid duplicating the context suffix if it is already present.
+      if (/\(regarding:.*\)$/i.test(trimmed)) return trimmed;
+
+      if (explicitContext && explicitContext.trim()) {
+        return `${trimmed} (regarding: ${explicitContext.trim()})`;
+      }
+
+      const lastQuestion = [...messages]
+        .reverse()
+        .find((m) => m.type === "question")?.content;
+      if (!lastQuestion) return trimmed;
+
+      const words = trimmed.split(/\s+/);
+      const isFollowUp =
+        FOLLOW_UP_RE.test(trimmed) ||
+        (words.length <= 5 && PRONOUN_ONLY_RE.test(trimmed));
+
+      if (isFollowUp) return `${trimmed} (regarding: ${lastQuestion})`;
+      return trimmed;
+    },
+    [messages],
+  );
+
   // ── Send question ─────────────────────────────────────────────────────────
   const handleSend = useCallback(
-    async (text?: string) => {
+    async (text?: string, explicitContext?: string) => {
       const q = (text ?? input).trim();
       if (!q || loading) return;
+      const finalQuestion = buildQuestion(q, explicitContext);
       setInput("");
       setLoading(true);
 
@@ -396,7 +450,7 @@ export default function QAScreen() {
       scrollToBottom();
 
       try {
-        const data = await askQuestion(q, userId, userProfile);
+        const data = await askQuestion(finalQuestion, userId, userProfile);
         if (data.success || data.answer) {
           const followUps: string[] = data.follow_ups ?? generateFollowUps(q);
 
@@ -458,6 +512,7 @@ export default function QAScreen() {
       sessionId,
       saveCurrentSession,
       userProfile,
+      buildQuestion,
     ],
   );
 
@@ -876,6 +931,13 @@ export default function QAScreen() {
     // ── Answer bubble ─────────────────────────────────────────────────────
     const citesOpen = expandedCitations === msg.id;
     const doshaKey = msg.detectedDosha?.toLowerCase() ?? "";
+    const getParentQuestion = (): string => {
+      const idx = messages.findIndex((m) => m.id === msg.id);
+      if (idx > 0 && messages[idx - 1]?.type === "question") {
+        return messages[idx - 1].content;
+      }
+      return "";
+    };
 
     return (
       <View key={msg.id} className="items-start mb-5 px-3">
@@ -1018,7 +1080,7 @@ export default function QAScreen() {
                     <TouchableOpacity
                       key={i}
                       className="bg-[#e8f5e9] border border-[#a5d6a7] px-3 py-1.5 rounded-full"
-                      onPress={() => handleSend(fu)}
+                      onPress={() => handleSend(fu, getParentQuestion())}
                     >
                       <Text className="text-[12px] text-[#2d5016]">{fu}</Text>
                     </TouchableOpacity>
@@ -1228,20 +1290,7 @@ export default function QAScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{ position: "absolute", top: 12, right: 12 }}
-                    onPress={() =>
-                      Alert.alert(
-                        "Delete Session",
-                        "Remove this chat from history?",
-                        [
-                          { text: "Cancel", style: "cancel" },
-                          {
-                            text: "Delete",
-                            style: "destructive",
-                            onPress: () => deleteSession(session.id),
-                          },
-                        ],
-                      )
-                    }
+                    onPress={() => confirmDeleteSession(session.id)}
                   >
                     <Ionicons name="trash-outline" size={16} color="#ef9a9a" />
                   </TouchableOpacity>
