@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -24,9 +24,10 @@ const MAX_SYMPTOMS = 4;
 export default function PredictionScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const prakriti = params.prakriti
-    ? JSON.parse(params.prakriti as string)
-    : null;
+  const prakriti = useMemo(
+    () => (params.prakriti ? JSON.parse(params.prakriti as string) : null),
+    [params.prakriti],
+  );
 
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [severity, setSeverity] = useState<"mild" | "moderate" | "severe">("moderate");
@@ -43,10 +44,11 @@ export default function PredictionScreen() {
   const [activeTab, setActiveTab] = useState<"predict" | "history">("predict");
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const historyLoadedRef = useRef(false);
 
-  // ── Load history whenever history tab is opened ──────────────────────────
+  // ── Load history only on first open; manual refresh bypasses cache ───────
   useEffect(() => {
-    if (activeTab === "history") loadHistory();
+    if (activeTab === "history" && !historyLoadedRef.current) loadHistory();
   }, [activeTab]);
 
   const loadHistory = async () => {
@@ -56,6 +58,7 @@ export default function PredictionScreen() {
       if (!user) return;
       const data = await predictionService.getHistory(user.id);
       setHistory(data);
+      historyLoadedRef.current = true;
     } catch (e) {
       console.error("Failed to load history:", e);
     } finally {
@@ -63,27 +66,21 @@ export default function PredictionScreen() {
     }
   };
 
-  const getRelevantSymptoms = (): string[] => {
-    if (!prakriti) return SYMPTOMS;
-    const prioritySymptoms = DOSHA_SYMPTOMS[prakriti.dominant] || [];
-    const otherSymptoms = SYMPTOMS.filter(s => !prioritySymptoms.includes(s));
-    return [...prioritySymptoms, ...otherSymptoms];
-  };
-
   const filteredSymptoms = useMemo(() => {
-    const relevantSymptoms = getRelevantSymptoms();
-    if (!searchText.trim()) return relevantSymptoms;
-    return relevantSymptoms.filter((s) =>
-      s.toLowerCase().includes(searchText.toLowerCase()),
-    );
+    const prioritySymptoms = prakriti ? (DOSHA_SYMPTOMS[prakriti.dominant] || []) : [];
+    const allSymptoms = prakriti
+      ? [...prioritySymptoms, ...SYMPTOMS.filter(s => !prioritySymptoms.includes(s))]
+      : SYMPTOMS;
+    if (!searchText.trim()) return allSymptoms;
+    return allSymptoms.filter((s) => s.toLowerCase().includes(searchText.toLowerCase()));
   }, [searchText, prakriti]);
 
   // Calculate dominant dosha imbalance across all selected symptoms
-  const calculateDoshaImbalance = () => {
+  const imbalance = useMemo(() => {
     const counts: Record<string, number> = { vata: 0, pitta: 0, kapha: 0 };
     symptoms.forEach((s) => {
       const dosha = Object.entries(DOSHA_SYMPTOMS).find(([, syms]) =>
-        syms.includes(s)
+        syms.includes(s),
       )?.[0];
       if (dosha) counts[dosha]++;
     });
@@ -97,7 +94,7 @@ export default function PredictionScreen() {
       kapha_imbalance: imbalancedDosha === "kapha" ? 1.5 : 1.0,
       imbalanced_dosha: imbalancedDosha,
     };
-  };
+  }, [symptoms, prakriti]);
 
   const getAdjustedSeverity = () => {
     let baseSeverity = severity === "mild" ? 0 : severity === "moderate" ? 1 : 2;
@@ -106,7 +103,7 @@ export default function PredictionScreen() {
     return Math.max(0, Math.min(2, baseSeverity));
   };
 
-  const getSeasonalRecommendations = () => {
+  const seasonal = useMemo(() => {
     const month = new Date().getMonth();
     const season =
       month >= 2 && month <= 4 ? "spring" :
@@ -120,21 +117,21 @@ export default function PredictionScreen() {
       winter: "Kapha season - Exercise regularly, eat light foods.",
     };
     return { season, advice: seasonalAdvice[season] };
-  };
+  }, []);
 
-  const isPrioritySymptom = (symptomText: string): boolean => {
+  const isPrioritySymptom = useCallback((symptomText: string): boolean => {
     if (!prakriti) return false;
     return DOSHA_SYMPTOMS[prakriti.dominant]?.includes(symptomText) || false;
-  };
+  }, [prakriti]);
 
   // Toggle symptom in/out of selection (max MAX_SYMPTOMS)
-  const handleSelectSymptom = (s: string) => {
+  const handleSelectSymptom = useCallback((s: string) => {
     setSymptoms((prev) => {
       if (prev.includes(s)) return prev.filter((x) => x !== s);
       if (prev.length >= MAX_SYMPTOMS) return prev;
       return [...prev, s];
     });
-  };
+  }, []);
 
   const handlePredict = async () => {
     if (symptoms.length === 0) {
@@ -149,9 +146,6 @@ export default function PredictionScreen() {
         Alert.alert("Error", "Please login first");
         return;
       }
-
-      const imbalance = calculateDoshaImbalance();
-      const seasonal = getSeasonalRecommendations();
 
       const payload = {
         age: parseInt(age) || 30,
@@ -173,8 +167,6 @@ export default function PredictionScreen() {
         prakriti_confidence: prakriti?.confidence || "MODERATE",
       };
 
-      console.log("🔍 Enhanced Payload:", payload);
-
       const result = await diseaseApi.predict(payload);
       setPrediction(result);
       setShowInfo(false);
@@ -187,12 +179,13 @@ export default function PredictionScreen() {
         duration,
         top_3: result.top_3,
       });
-
-      console.log("✅ Prediction saved to Supabase");
+      historyLoadedRef.current = false; // invalidate cache so history refreshes next open
     } catch (e: any) {
-      console.error("Prediction error:", e);
-
-      const demo = {
+      Alert.alert(
+        "Server Unreachable",
+        "Could not reach the prediction server. Showing a sample result — this has not been saved.",
+      );
+      setPrediction({
         predicted_disease: "Gastritis",
         confidence: 0.875,
         top_3: [
@@ -200,20 +193,7 @@ export default function PredictionScreen() {
           { disease: "Diabetes", probability: 0.062 },
           { disease: "Arthritis", probability: 0.031 },
         ],
-      };
-      setPrediction(demo);
-
-      const user = await authService.currentUser();
-      if (user) {
-        await predictionService.save(user.id, {
-          predicted_disease: demo.predicted_disease,
-          confidence: demo.confidence,
-          symptom: symptoms.join(", "),
-          severity,
-          duration,
-          top_3: demo.top_3,
-        });
-      }
+      });
     } finally {
       setLoading(false);
     }
@@ -238,8 +218,6 @@ export default function PredictionScreen() {
   }
 
   const diseaseInfo = prediction ? DISEASE_INFO[prediction.predicted_disease] : null;
-  const imbalance = calculateDoshaImbalance();
-  const seasonal = getSeasonalRecommendations();
 
   const SEVERITY_CONFIG = {
     mild: { icon: "alert-circle-outline" as const, label: "Mild", color: "#4caf50" },
@@ -619,7 +597,7 @@ export default function PredictionScreen() {
             <>
               <View style={styles.historyHeader}>
                 <Text style={styles.historyHeaderText}>{history.length} prediction{history.length !== 1 ? "s" : ""}</Text>
-                <TouchableOpacity onPress={loadHistory}>
+                <TouchableOpacity onPress={() => { historyLoadedRef.current = false; loadHistory(); }}>
                   <Ionicons name="refresh" size={18} color="#2d5016" />
                 </TouchableOpacity>
               </View>
