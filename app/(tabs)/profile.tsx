@@ -105,7 +105,7 @@ export default function ProfileScreen() {
       {/* Prakriti Summary */}
       {prakriti ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Your Prakriti</Text>
+          <Text style={styles.cardTitle}>Your Dosha Assessment</Text>
           <DoshaChart prakriti={prakriti} />
           <View style={styles.doshaScores}>
             <View style={styles.doshaScore}>
@@ -132,8 +132,8 @@ export default function ProfileScreen() {
       ) : (
         <View style={styles.card}>
           <Ionicons name="body-outline" size={48} color="#ccc" />
-          <Text style={styles.emptyTitle}>No Prakriti Assessment</Text>
-          <Text style={styles.emptyText}>Take the assessment to discover your body constitution</Text>
+          <Text style={styles.emptyTitle}>No Dosha Assessment</Text>
+          <Text style={styles.emptyText}>Take the assessment to identify your current dominant dosha</Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/prakriti' as any)} activeOpacity={0.8}>
             <Text style={styles.primaryBtnText}>Start Assessment</Text>
           </TouchableOpacity>

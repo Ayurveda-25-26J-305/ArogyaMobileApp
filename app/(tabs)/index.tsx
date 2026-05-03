@@ -72,13 +72,13 @@ export default function HomeScreen() {
         <Text style={styles.cardTitle}>🎯 Quick Start</Text>
         <Text style={styles.cardText}>
           {prakriti
-            ? 'Your Prakriti is assessed. Start disease prediction now.'
-            : 'Begin by assessing your Prakriti (body constitution).'}
+            ? 'Your dosha is assessed. Start disease prediction now.'
+            : 'Begin by assessing your current dominant dosha.'}
         </Text>
         <TouchableOpacity style={styles.primaryBtn} onPress={handleQuickStart} activeOpacity={0.8}>
           <Ionicons name={prakriti ? 'analytics' : 'body'} size={20} color="#fff" />
           <Text style={styles.primaryBtnText}>
-            {prakriti ? 'Start Prediction' : 'Assess Prakriti'}
+            {prakriti ? 'Start Prediction' : 'Assess Dosha'}
           </Text>
           <Ionicons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
@@ -89,7 +89,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Features</Text>
         <View style={styles.grid}>
           {[
-            { icon: 'body', title: 'Prakriti Assessment', desc: 'Determine your body constitution', route: '/prakriti' },
+            { icon: 'body', title: 'Dosha Assessment', desc: 'Identify your current dominant dosha', route: '/prakriti' },
             { icon: 'analytics', title: 'Disease Prediction', desc: 'AI-powered health analysis', route: '/prediction' },
             { icon: 'medkit', title: 'Medicine Recommendations', desc: 'Personalized herbal remedies', route: '/(tabs)/medicine' },
             { icon: 'nutrition', title: 'Diet Plans', desc: 'Ayurvedic meal suggestions', route: '/(tabs)/diet' },
@@ -124,7 +124,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>How It Works</Text>
         <View style={styles.stepsContainer}>
           {[
-            { num: '1', title: 'Assess Prakriti', desc: 'Answer questions about your body type' },
+            { num: '1', title: 'Dosha Assessment', desc: 'Answer questions about your current body state' },
             { num: '2', title: 'Enter Symptoms', desc: 'Select your primary symptom and severity' },
             { num: '3', title: 'Get Prediction', desc: 'AI analyzes using constitutional factors' },
             { num: '4', title: 'View Results', desc: 'Receive personalized recommendations' },

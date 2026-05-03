@@ -13,24 +13,10 @@ const QUESTIONS = [
     question: 'Body Frame & Build',
     subtitle: 'How would you describe your natural body frame?',
     options: [
-      { 
-        label: 'Thin/Light', 
-        dosha: 'vata', 
-        help: 'Slim build, prominent joints, find it difficult to gain weight even when eating well',
-        weight: 0.15
-      },
-      { 
-        label: 'Medium', 
-        dosha: 'pitta', 
-        help: 'Moderate build with good muscle tone, can gain or lose weight with effort',
-        weight: 0.15
-      },
-      { 
-        label: 'Large/Solid', 
-        dosha: 'kapha', 
-        help: 'Broad shoulders/hips, solid build, gain weight easily and lose it slowly',
-        weight: 0.15
-      },
+      { label: 'Thin/Light', dosha: 'vata', help: 'Slim build, prominent joints, find it difficult to gain weight even when eating well', weight: 0.15 },
+      { label: 'Medium', dosha: 'pitta', help: 'Moderate build with good muscle tone, can gain or lose weight with effort', weight: 0.15 },
+      { label: 'Large/Solid', dosha: 'kapha', help: 'Broad shoulders/hips, solid build, gain weight easily and lose it slowly', weight: 0.15 },
+      { label: 'Proportionate', dosha: 'balanced', help: 'Well-proportioned, moderate frame — weight stays relatively stable without much effort', weight: 0.15 },
     ],
   },
   {
@@ -39,24 +25,10 @@ const QUESTIONS = [
     question: 'Skin Texture & Quality',
     subtitle: 'What best describes your skin texture?',
     options: [
-      { 
-        label: 'Dry/Rough/Thin', 
-        dosha: 'vata', 
-        help: 'Skin feels dry, may crack in winter, visible veins, ages with fine lines',
-        weight: 0.12
-      },
-      { 
-        label: 'Warm/Soft/Oily', 
-        dosha: 'pitta', 
-        help: 'Skin feels warm to touch, may have acne or rashes, sensitive to sun',
-        weight: 0.12
-      },
-      { 
-        label: 'Thick/Smooth/Cool', 
-        dosha: 'kapha', 
-        help: 'Soft and moist skin, cool to touch, ages well with fewer wrinkles',
-        weight: 0.12
-      },
+      { label: 'Dry/Rough/Thin', dosha: 'vata', help: 'Skin feels dry, may crack in winter, visible veins, ages with fine lines', weight: 0.12 },
+      { label: 'Warm/Soft/Oily', dosha: 'pitta', help: 'Skin feels warm to touch, may have acne or rashes, sensitive to sun', weight: 0.12 },
+      { label: 'Thick/Smooth/Cool', dosha: 'kapha', help: 'Soft and moist skin, cool to touch, ages well with fewer wrinkles', weight: 0.12 },
+      { label: 'Normal/Balanced', dosha: 'balanced', help: 'Neither too dry nor oily, comfortable in most climates, minimal skin issues', weight: 0.12 },
     ],
   },
   {
@@ -65,24 +37,10 @@ const QUESTIONS = [
     question: 'Appetite Pattern',
     subtitle: 'How would you describe your appetite?',
     options: [
-      { 
-        label: 'Irregular/Variable', 
-        dosha: 'vata', 
-        help: 'Sometimes very hungry, other times not at all. May forget to eat when busy',
-        weight: 0.13
-      },
-      { 
-        label: 'Strong/Sharp', 
-        dosha: 'pitta', 
-        help: 'Get very hungry at regular times. Irritable or uncomfortable if meals are delayed',
-        weight: 0.13
-      },
-      { 
-        label: 'Steady/Low', 
-        dosha: 'kapha', 
-        help: 'Can skip meals easily without discomfort. Eat at regular times but never urgently hungry',
-        weight: 0.13
-      },
+      { label: 'Irregular/Variable', dosha: 'vata', help: 'Sometimes very hungry, other times not at all. May forget to eat when busy', weight: 0.13 },
+      { label: 'Strong/Sharp', dosha: 'pitta', help: 'Get very hungry at regular times. Irritable or uncomfortable if meals are delayed', weight: 0.13 },
+      { label: 'Steady/Low', dosha: 'kapha', help: 'Can skip meals easily without discomfort. Eat at regular times but never urgently hungry', weight: 0.13 },
+      { label: 'Regular/Moderate', dosha: 'balanced', help: 'Consistent, moderate appetite — hungry at meal times but not urgently, comfortable if meals are slightly delayed', weight: 0.13 },
     ],
   },
   {
@@ -91,24 +49,10 @@ const QUESTIONS = [
     question: 'Digestion Speed',
     subtitle: 'How quickly do you digest food?',
     options: [
-      { 
-        label: 'Quick/Irregular', 
-        dosha: 'vata', 
-        help: 'Food moves through quickly, may experience gas or bloating, irregular bowel movements',
-        weight: 0.10
-      },
-      { 
-        label: 'Fast/Strong', 
-        dosha: 'pitta', 
-        help: 'Digest food rapidly, regular bowel movements 2-3 times daily, may feel heat after eating',
-        weight: 0.10
-      },
-      { 
-        label: 'Slow/Steady', 
-        dosha: 'kapha', 
-        help: 'Digestion feels slow and heavy, bowel movements once daily or less, may feel sluggish after meals',
-        weight: 0.10
-      },
+      { label: 'Quick/Irregular', dosha: 'vata', help: 'Food moves through quickly, may experience gas or bloating, irregular bowel movements', weight: 0.10 },
+      { label: 'Fast/Strong', dosha: 'pitta', help: 'Digest food rapidly, regular bowel movements 2-3 times daily, may feel heat after eating', weight: 0.10 },
+      { label: 'Slow/Steady', dosha: 'kapha', help: 'Digestion feels slow and heavy, bowel movements once daily or less, may feel sluggish after meals', weight: 0.10 },
+      { label: 'Normal/Regular', dosha: 'balanced', help: 'Comfortable digestion without gas or sluggishness — regular bowel movements, no discomfort after eating', weight: 0.10 },
     ],
   },
   {
@@ -117,24 +61,10 @@ const QUESTIONS = [
     question: 'Sleep Pattern',
     subtitle: 'What best describes your sleep?',
     options: [
-      { 
-        label: 'Light/Interrupted', 
-        dosha: 'vata', 
-        help: 'Wake up easily from small noises, trouble falling back asleep, sleep less than 6 hours',
-        weight: 0.10
-      },
-      { 
-        label: 'Moderate/Sound', 
-        dosha: 'pitta', 
-        help: 'Fall asleep quickly, may wake once, need 6-7 hours, dream vividly',
-        weight: 0.10
-      },
-      { 
-        label: 'Deep/Heavy', 
-        dosha: 'kapha', 
-        help: 'Sleep deeply and long (8+ hours), hard to wake up, groggy in morning',
-        weight: 0.10
-      },
+      { label: 'Light/Interrupted', dosha: 'vata', help: 'Wake up easily from small noises, trouble falling back asleep, sleep less than 6 hours', weight: 0.10 },
+      { label: 'Moderate/Sound', dosha: 'pitta', help: 'Fall asleep quickly, may wake once, need 6-7 hours, dream vividly', weight: 0.10 },
+      { label: 'Deep/Heavy', dosha: 'kapha', help: 'Sleep deeply and long (8+ hours), hard to wake up, groggy in morning', weight: 0.10 },
+      { label: 'Restful/Regular', dosha: 'balanced', help: 'Sleep well for 7–8 hours, wake up feeling refreshed — fall asleep easily without oversleeping', weight: 0.10 },
     ],
   },
   {
@@ -143,24 +73,10 @@ const QUESTIONS = [
     question: 'Mental Activity & Thinking',
     subtitle: 'How does your mind work?',
     options: [
-      { 
-        label: 'Quick/Active/Creative', 
-        dosha: 'vata', 
-        help: 'Mind always racing with many ideas, creative but may struggle to focus, learn quickly but forget quickly',
-        weight: 0.12
-      },
-      { 
-        label: 'Sharp/Focused/Analytical', 
-        dosha: 'pitta', 
-        help: 'Logical thinker, good at planning and decisions, focused but may become critical or perfectionist',
-        weight: 0.12
-      },
-      { 
-        label: 'Calm/Steady/Methodical', 
-        dosha: 'kapha', 
-        help: 'Think slowly but thoroughly, excellent memory once learned, calm but may resist change',
-        weight: 0.12
-      },
+      { label: 'Quick/Active/Creative', dosha: 'vata', help: 'Mind always racing with many ideas, creative but may struggle to focus, learn quickly but forget quickly', weight: 0.12 },
+      { label: 'Sharp/Focused/Analytical', dosha: 'pitta', help: 'Logical thinker, good at planning and decisions, focused but may become critical or perfectionist', weight: 0.12 },
+      { label: 'Calm/Steady/Methodical', dosha: 'kapha', help: 'Think slowly but thoroughly, excellent memory once learned, calm but may resist change', weight: 0.12 },
+      { label: 'Balanced/Adaptable', dosha: 'balanced', help: 'Able to focus when needed and think creatively when appropriate — good concentration, memory, and mental flexibility', weight: 0.12 },
     ],
   },
   {
@@ -169,24 +85,10 @@ const QUESTIONS = [
     question: 'Stress Response',
     subtitle: 'How do you typically respond to stress?',
     options: [
-      { 
-        label: 'Anxiety/Worry/Fear', 
-        dosha: 'vata', 
-        help: 'Tend to worry and overthink, feel anxious or nervous, may experience panic or scattered thoughts',
-        weight: 0.11
-      },
-      { 
-        label: 'Anger/Frustration', 
-        dosha: 'pitta', 
-        help: 'Get frustrated easily, may lose temper, become critical of others or impatient',
-        weight: 0.11
-      },
-      { 
-        label: 'Withdrawal/Depression', 
-        dosha: 'kapha', 
-        help: 'Become withdrawn or sad, hold onto things or relationships, may overeat or oversleep',
-        weight: 0.11
-      },
+      { label: 'Anxiety/Worry/Fear', dosha: 'vata', help: 'Tend to worry and overthink, feel anxious or nervous, may experience panic or scattered thoughts', weight: 0.11 },
+      { label: 'Anger/Frustration', dosha: 'pitta', help: 'Get frustrated easily, may lose temper, become critical of others or impatient', weight: 0.11 },
+      { label: 'Withdrawal/Depression', dosha: 'kapha', help: 'Become withdrawn or sad, hold onto things or relationships, may overeat or oversleep', weight: 0.11 },
+      { label: 'Calm/Resilient', dosha: 'balanced', help: 'Handle stress calmly without strong anxiety, anger, or withdrawal — recover quickly and stay grounded', weight: 0.11 },
     ],
   },
   {
@@ -195,24 +97,10 @@ const QUESTIONS = [
     question: 'Energy Levels & Stamina',
     subtitle: 'How would you describe your energy?',
     options: [
-      { 
-        label: 'Bursts/Quick Fatigue', 
-        dosha: 'vata', 
-        help: 'Energetic in short bursts, tire quickly, energy fluctuates throughout the day',
-        weight: 0.08
-      },
-      { 
-        label: 'Steady/Moderate', 
-        dosha: 'pitta', 
-        help: 'Consistent energy levels, good stamina, can push through when needed',
-        weight: 0.08
-      },
-      { 
-        label: 'Slow Start/High Endurance', 
-        dosha: 'kapha', 
-        help: 'Slow to get started but excellent endurance once moving, steady energy all day',
-        weight: 0.08
-      },
+      { label: 'Bursts/Quick Fatigue', dosha: 'vata', help: 'Energetic in short bursts, tire quickly, energy fluctuates throughout the day', weight: 0.08 },
+      { label: 'Steady/Moderate', dosha: 'pitta', help: 'Consistent energy levels, good stamina, can push through when needed', weight: 0.08 },
+      { label: 'Slow Start/High Endurance', dosha: 'kapha', help: 'Slow to get started but excellent endurance once moving, steady energy all day', weight: 0.08 },
+      { label: 'Good/Consistent', dosha: 'balanced', help: 'Steady energy throughout the day — neither fatigues quickly nor struggles to start, good overall vitality', weight: 0.08 },
     ],
   },
   {
@@ -221,24 +109,10 @@ const QUESTIONS = [
     question: 'Temperature Preference',
     subtitle: 'Which weather suits you best?',
     options: [
-      { 
-        label: 'Prefer Warm', 
-        dosha: 'vata', 
-        help: 'Feel cold easily, hands and feet often cold, love warm weather and hot drinks',
-        weight: 0.05
-      },
-      { 
-        label: 'Prefer Cool', 
-        dosha: 'pitta', 
-        help: 'Feel hot easily, prefer cool weather, uncomfortable in heat, like cold drinks',
-        weight: 0.05
-      },
-      { 
-        label: 'Tolerate Both', 
-        dosha: 'kapha', 
-        help: 'Comfortable in most temperatures, may prefer moderate climate',
-        weight: 0.05
-      },
+      { label: 'Prefer Warm', dosha: 'vata', help: 'Feel cold easily, hands and feet often cold, love warm weather and hot drinks', weight: 0.05 },
+      { label: 'Prefer Cool', dosha: 'pitta', help: 'Feel hot easily, prefer cool weather, uncomfortable in heat, like cold drinks', weight: 0.05 },
+      { label: 'Tolerate Both', dosha: 'kapha', help: 'Comfortable in most temperatures, may prefer moderate climate', weight: 0.05 },
+      { label: 'Comfortable in All', dosha: 'balanced', help: 'Comfortable across all seasons and temperatures — adapt easily without strong preferences', weight: 0.05 },
     ],
   },
   {
@@ -247,24 +121,10 @@ const QUESTIONS = [
     question: 'Speech & Communication',
     subtitle: 'How would you describe your way of speaking?',
     options: [
-      { 
-        label: 'Fast/Talkative', 
-        dosha: 'vata', 
-        help: 'Speak quickly, talk a lot, may jump between topics, voice may be weak or hoarse',
-        weight: 0.04
-      },
-      { 
-        label: 'Clear/Articulate', 
-        dosha: 'pitta', 
-        help: 'Speak clearly and precisely, good at debates, voice is strong and sharp',
-        weight: 0.04
-      },
-      { 
-        label: 'Slow/Steady', 
-        dosha: 'kapha', 
-        help: 'Speak slowly and thoughtfully, voice is deep and melodious, say less but meaningful',
-        weight: 0.04
-      },
+      { label: 'Fast/Talkative', dosha: 'vata', help: 'Speak quickly, talk a lot, may jump between topics, voice may be weak or hoarse', weight: 0.04 },
+      { label: 'Clear/Articulate', dosha: 'pitta', help: 'Speak clearly and precisely, good at debates, voice is strong and sharp', weight: 0.04 },
+      { label: 'Slow/Steady', dosha: 'kapha', help: 'Speak slowly and thoughtfully, voice is deep and melodious, say less but meaningful', weight: 0.04 },
+      { label: 'Natural/Measured', dosha: 'balanced', help: 'Speak at a natural, comfortable pace — clear and confident, neither too fast nor too slow', weight: 0.04 },
     ],
   },
 ];
@@ -273,6 +133,7 @@ const DOSHA_COLORS = {
   vata: '#FF6B6B',
   pitta: '#4ECDC4',
   kapha: '#45B7D1',
+  balanced: '#4caf50',
 };
 
 const DOSHA_INFO = {
@@ -309,6 +170,22 @@ const DOSHA_INFO = {
     lifestyle: ['Daily vigorous exercise', 'Wake up early (before 6 AM)', 'Stimulating & social activities', 'Dry brushing before shower', 'Avoid daytime napping'],
     commonDiseases: ['Type 2 diabetes', 'Obesity', 'Respiratory conditions (asthma)', 'Heart disease', 'Hypothyroidism'],
   },
+  balanced: {
+    icon: '⚖️',
+    element: 'Vata · Pitta · Kapha',
+    characteristics: 'Well-balanced, adaptable, resilient',
+    traits: ['Proportionate frame', 'Healthy skin', 'Regular appetite', 'Restful sleep', 'Clear, calm mind'],
+    healthRisks: [
+      'Maintain balance through consistent routine',
+      'Seasonal shifts may temporarily disturb doshas',
+      'Stress or poor diet can create imbalance',
+      'Monitor for early signs of dosha aggravation',
+    ],
+    dietFavor: ['Fresh, seasonal whole foods', 'All six tastes in moderation', 'Warm, cooked meals', 'Varied, balanced diet'],
+    dietAvoid: ['Excess of any single taste', 'Highly processed foods', 'Irregular meal timing', 'Overeating'],
+    lifestyle: ['Regular daily routine (dinacharya)', 'Moderate, varied exercise', 'Adequate sleep (7–8 hrs)', 'Seasonal dietary adjustments', 'Mindfulness and stress management'],
+    commonDiseases: ['Low baseline risk', 'Susceptibility shifts with seasons', 'Maintain balance with mindful living'],
+  },
 };
 
 export default function PrakritiScreen() {
@@ -338,11 +215,17 @@ export default function PrakritiScreen() {
   };
 
   const calculatePrakriti = async (finalAnswers: Record<number, { dosha: string; weight: number }>) => {
-    // Weighted calculation
     const scores = { vata: 0, pitta: 0, kapha: 0 };
-    
+
     Object.values(finalAnswers).forEach((answer) => {
-      scores[answer.dosha as keyof typeof scores] += answer.weight;
+      if (answer.dosha === 'balanced') {
+        const share = answer.weight / 3;
+        scores.vata += share;
+        scores.pitta += share;
+        scores.kapha += share;
+      } else {
+        scores[answer.dosha as keyof typeof scores] += answer.weight;
+      }
     });
 
     const total = scores.vata + scores.pitta + scores.kapha;
@@ -350,23 +233,27 @@ export default function PrakritiScreen() {
     const pitta = scores.pitta / total;
     const kapha = scores.kapha / total;
 
-    const dominant = vata >= pitta && vata >= kapha
+    const maxScore = Math.max(vata, pitta, kapha);
+    const minScore = Math.min(vata, pitta, kapha);
+    const isBalanced = (maxScore - minScore) < 0.08;
+
+    const dominant = isBalanced
+      ? 'balanced'
+      : vata >= pitta && vata >= kapha
       ? 'vata'
       : pitta >= kapha
       ? 'pitta'
       : 'kapha';
 
-    // Calculate confidence
-    const maxScore = Math.max(vata, pitta, kapha);
     const secondMax = [vata, pitta, kapha].sort((a, b) => b - a)[1];
-    const confidence = maxScore - secondMax; // Higher = more certain
+    const gap = maxScore - secondMax;
 
     const prakriti = {
       vata: vata.toFixed(2),
       pitta: pitta.toFixed(2),
       kapha: kapha.toFixed(2),
       dominant,
-      confidence: confidence > 0.2 ? 'HIGH' : confidence > 0.1 ? 'MODERATE' : 'LOW',
+      confidence: isBalanced ? 'BALANCED' : gap > 0.2 ? 'HIGH' : gap > 0.1 ? 'MODERATE' : 'LOW',
     };
 
     setSaving(true);
@@ -392,7 +279,7 @@ export default function PrakritiScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: '#f1f8e9', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
         <ActivityIndicator size="large" color="#2d5016" />
-        <Text style={{ fontSize: 16, color: '#2d5016', fontWeight: '600' }}>Saving your Prakriti…</Text>
+        <Text style={{ fontSize: 16, color: '#2d5016', fontWeight: '600' }}>Saving your assessment…</Text>
       </View>
     );
   }
@@ -401,7 +288,7 @@ export default function PrakritiScreen() {
     const dominant = result.dominant as keyof typeof DOSHA_INFO;
     const info = DOSHA_INFO[dominant];
     const color = DOSHA_COLORS[dominant];
-    const confidenceEmoji = result.confidence === 'HIGH' ? '✅' : result.confidence === 'MODERATE' ? '⚠️' : '❓';
+    const confidenceEmoji = result.confidence === 'BALANCED' ? '⚖️' : result.confidence === 'HIGH' ? '✅' : result.confidence === 'MODERATE' ? '⚠️' : '❓';
     const scores = [
       { label: 'Vata', value: parseFloat(result.vata), color: DOSHA_COLORS.vata },
       { label: 'Pitta', value: parseFloat(result.pitta), color: DOSHA_COLORS.pitta },
@@ -413,10 +300,14 @@ export default function PrakritiScreen() {
         {/* Header */}
         <View style={[styles.resultHeader, { borderBottomColor: color }]}>
           <Text style={styles.introEmoji}>{info.icon}</Text>
-          <Text style={styles.introTitle}>Your Prakriti</Text>
+          <Text style={styles.introTitle}>Your Dosha Assessment</Text>
           <Text style={[styles.resultDoshaName, { color }]}>{dominant.toUpperCase()}</Text>
           <Text style={styles.doshaCharacteristics}>{info.characteristics}</Text>
-          <Text style={styles.resultConfidence}>{confidenceEmoji} Confidence: {result.confidence}</Text>
+          <Text style={styles.resultConfidence}>
+            {result.confidence === 'BALANCED'
+              ? '⚖️ All three doshas are in balance'
+              : `${confidenceEmoji} Confidence: ${result.confidence}`}
+          </Text>
         </View>
 
         {/* Dosha Score Bars */}
@@ -533,13 +424,13 @@ export default function PrakritiScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.introContent}>
         <View style={styles.introHeader}>
           <Text style={styles.introEmoji}>🌿</Text>
-          <Text style={styles.introTitle}>Prakriti Assessment</Text>
-          <Text style={styles.introSubtitle}>Discover Your Body Constitution in 10 Questions</Text>
+          <Text style={styles.introTitle}>Dosha Assessment</Text>
+          <Text style={styles.introSubtitle}>Identify Your Current Dominant Dosha in 10 Questions</Text>
         </View>
 
         <View style={styles.infoCard}>
           <Text style={styles.infoText}>
-            <Text style={styles.bold}>Prakriti</Text> is your unique mind-body constitution in Ayurveda. It influences how you look, think, digest food, and respond to stress.
+            This assessment identifies your <Text style={styles.bold}>currently dominant dosha</Text> — the Vata, Pitta, or Kapha energy that is most active in your body right now. Your current state can shift with diet, lifestyle, season, and stress. If all three doshas are in balance, you will receive a <Text style={styles.bold}>Balanced</Text> result.
           </Text>
         </View>
 
@@ -572,8 +463,9 @@ export default function PrakritiScreen() {
             <Text style={styles.tipTitle}>Assessment Info</Text>
             <Text style={styles.tipText}>
               • Takes 3-4 minutes{'\n'}
-              • 10 validated questions{'\n'}
-              • Answer based on your natural tendencies{'\n'}
+              • 10 questions across 5 categories{'\n'}
+              • Answer based on how you feel right now{'\n'}
+              • Balanced option available if you feel healthy{'\n'}
               • ~75% accuracy compared to clinical assessment
             </Text>
           </View>
