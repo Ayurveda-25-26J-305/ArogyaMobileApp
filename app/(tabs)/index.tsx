@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { storage, authService } from '../../services/supabase';
@@ -44,7 +44,7 @@ export default function HomeScreen() {
       
       {/* Hero Section */}
       <View style={styles.hero}>
-        <Text style={styles.heroEmoji}>🌿</Text>
+        <Image source={require('../../assets/images/icon.png')} style={styles.heroLogo} />
         <Text style={styles.heroTitle}>Arogya</Text>
         <Text style={styles.heroSubtitle}>
           Constitutional-Aware Ayurvedic Disease Prediction
@@ -69,7 +69,7 @@ export default function HomeScreen() {
 
       {/* Quick Start */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>🎯 Quick Start</Text>
+        <Text style={styles.cardTitle}>Quick Start</Text>
         <Text style={styles.cardText}>
           {prakriti
             ? 'Your dosha is assessed. Start disease prediction now.'
@@ -158,7 +158,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f8e9' },
   hero: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },
-  heroEmoji: { fontSize: 64, marginBottom: 12 },
+  heroLogo: { width: 120, height: 120, marginBottom: 12 },
   heroTitle: { fontSize: 36, fontWeight: 'bold', color: '#1b5e20', marginBottom: 8 },
   heroSubtitle: { fontSize: 14, color: '#777', textAlign: 'center', maxWidth: 280 },
   

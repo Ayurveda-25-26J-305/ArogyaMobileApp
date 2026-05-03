@@ -349,28 +349,6 @@ export default function PrakritiScreen() {
           </View>
         </View>
 
-        {/* Diet to Favor */}
-        <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>✅ Foods to Favor</Text>
-          {info.dietFavor.map((f, i) => (
-            <View key={i} style={styles.healthRow}>
-              <Text style={{ color: '#4caf50', marginRight: 8, fontSize: 14 }}>●</Text>
-              <Text style={styles.healthText}>{f}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Diet to Avoid */}
-        <View style={styles.infoCard}>
-          <Text style={styles.sectionTitle}>❌ Foods to Avoid</Text>
-          {info.dietAvoid.map((f, i) => (
-            <View key={i} style={styles.healthRow}>
-              <Text style={{ color: '#ef5350', marginRight: 8, fontSize: 14 }}>●</Text>
-              <Text style={styles.healthText}>{f}</Text>
-            </View>
-          ))}
-        </View>
-
         {/* Lifestyle */}
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>🧘 Lifestyle Recommendations</Text>

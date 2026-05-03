@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +38,7 @@ export default function LoginScreen() {
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>🌿</Text>
+          <Image source={require('../assets/images/icon.png')} style={styles.logo} />
           <Text style={styles.appName}>Arogya</Text>
           <Text style={styles.tagline}>Ayurvedic Health Prediction</Text>
         </View>
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f8e9' },
   content: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 40 },
-  logo: { fontSize: 64, marginBottom: 8 },
+  logo: { width: 100, height: 100, marginBottom: 8 },
   appName: { fontSize: 32, fontWeight: 'bold', color: '#1b5e20', marginBottom: 4 },
   tagline: { fontSize: 14, color: '#777' },
   form: {
