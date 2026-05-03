@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import MedicineResults from "../../components/MedicineResults";
+import HerbResults from "../../components/HerbResult";
 import MedicineStep1 from "../../components/MedicineStep1";
 import MedicineStep2 from "../../components/MedicineStep2";
 import MedicineStep3 from "../../components/MedicineStep3";
@@ -40,8 +40,28 @@ export default function MedicineScreen() {
 
   const [predictedHerbs, setPredictedHerbs] = useState<PredictedHerbs>(null);
 
-  const update = (key: string, value: string) => {
-    setForm((prev) => ({ ...prev, [key as keyof MedicineForm]: value }));
+  const update = (key: keyof MedicineForm, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleRestart = () => {
+    setForm({
+      disease: "",
+      agni: "",
+      region: "western",
+      gender: "male",
+      age: "",
+      vata: "",
+      pitta: "",
+      kapha: "",
+      ama: "",
+      mucus: "",
+      dryness: "",
+      heat: "",
+      pain: "",
+    });
+    setPredictedHerbs(null);
+    setStep(1);
   };
 
   const predictHerbs = async () => {
@@ -73,6 +93,8 @@ export default function MedicineScreen() {
       });
     } catch (error) {
       console.error("Error predicting herbs:", error);
+    } finally {
+      setStep(4);
     }
   };
 
@@ -104,100 +126,98 @@ export default function MedicineScreen() {
             onPredict={predictHerbs}
           />
         );
+      case 4:
+        return (
+          <HerbResults
+            predictedHerbs={predictedHerbs}
+            onBack={() => setStep(3)}
+            onRestart={handleRestart}
+          />
+        );
       default:
         return null;
     }
   };
 
+  const showHeader = step !== 4;
+
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={showHeader ? styles.content : styles.contentFull}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerIconRing}>
-          <Text style={styles.headerEmoji}>🌿</Text>
-        </View>
-        <Text style={styles.headerTitle}>Herb Recommendation</Text>
-        <Text style={styles.headerSub}>
-          AI-assisted herb guidance based on Ayurvedic principles
-        </Text>
-      </View>
+      {showHeader && (
+        <>
+          <View style={styles.header}>
+            <View style={styles.headerIconRing}>
+              <Text style={styles.headerEmoji}>🌿</Text>
+            </View>
+            <Text style={styles.headerTitle}>Herb Recommendation</Text>
+            <Text style={styles.headerSub}>
+              AI-assisted herb guidance based on Ayurvedic principles
+            </Text>
+          </View>
 
-      {/* Step indicator */}
-      <View style={styles.stepRow}>
-        {STEPS.map((label, i) => {
-          const idx = i + 1;
-          const done = step > idx;
-          const active = step === idx;
-          return (
-            <React.Fragment key={label}>
-              <View style={styles.stepItem}>
-                <View
-                  style={[
-                    styles.stepCircle,
-                    done && styles.stepCircleDone,
-                    active && styles.stepCircleActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.stepNum,
-                      (done || active) && { color: T.white },
-                    ]}
-                  >
-                    {done ? "✓" : idx}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.stepLabel,
-                    active && { color: T.leaf, fontWeight: "700" },
-                    done && { color: T.leafMid },
-                  ]}
-                >
-                  {label}
-                </Text>
-              </View>
-              {i < STEPS.length - 1 && (
-                <View
-                  style={[
-                    styles.stepLine,
-                    step > i + 1 && { backgroundColor: T.sage },
-                  ]}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </View>
-
-      {/* Step content */}
-      {renderStep()}
-
-      {/* Results (shown after predict on step 3) */}
-      {step === 3 && predictedHerbs && (
-        <MedicineResults predictedHerbs={predictedHerbs} />
+          <View style={styles.stepRow}>
+            {STEPS.map((label, i) => {
+              const idx = i + 1;
+              const done = step > idx;
+              const active = step === idx;
+              return (
+                <React.Fragment key={label}>
+                  <View style={styles.stepItem}>
+                    <View
+                      style={[
+                        styles.stepCircle,
+                        done && styles.stepCircleDone,
+                        active && styles.stepCircleActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.stepNum,
+                          (done || active) && { color: T.white },
+                        ]}
+                      >
+                        {done ? "✓" : idx}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.stepLabel,
+                        active && { color: T.leaf, fontWeight: "700" },
+                        done && { color: T.leafMid },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </View>
+                  {i < STEPS.length - 1 && (
+                    <View
+                      style={[
+                        styles.stepLine,
+                        step > i + 1 && { backgroundColor: T.sage },
+                      ]}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </View>
+        </>
       )}
+
+      {renderStep()}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: T.bg,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 48,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
+  screen: { flex: 1, backgroundColor: T.bg },
+  content: { padding: 20, paddingBottom: 48 },
+  contentFull: { flexGrow: 1 },
+  header: { alignItems: "center", marginBottom: 24 },
   headerIconRing: {
     width: 72,
     height: 72,
@@ -235,10 +255,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 4,
   },
-  stepItem: {
-    alignItems: "center",
-    gap: 5,
-  },
+  stepItem: { alignItems: "center", gap: 5 },
   stepCircle: {
     width: 32,
     height: 32,
@@ -249,24 +266,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stepCircleActive: {
-    backgroundColor: T.leaf,
-    borderColor: T.leaf,
-  },
-  stepCircleDone: {
-    backgroundColor: T.leafMid,
-    borderColor: T.leafMid,
-  },
-  stepNum: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: T.inkLight,
-  },
-  stepLabel: {
-    fontSize: 10,
-    color: T.inkLight,
-    fontWeight: "500",
-  },
+  stepCircleActive: { backgroundColor: T.leaf, borderColor: T.leaf },
+  stepCircleDone: { backgroundColor: T.leafMid, borderColor: T.leafMid },
+  stepNum: { fontSize: 13, fontWeight: "700", color: T.inkLight },
+  stepLabel: { fontSize: 10, color: T.inkLight, fontWeight: "500" },
   stepLine: {
     flex: 1,
     height: 2,

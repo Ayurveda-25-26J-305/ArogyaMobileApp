@@ -105,8 +105,8 @@ const AGNI_OPTIONS: AgniOption[] = [
   },
   {
     key: "manda",
-    label: "Slow Fire",
-    sanskrit: "මන්ද අග්නි",
+    label: "මන්ද අග්නි",
+    sanskrit: "manda agni",
     icon: "🌊",
     dosha: "",
     color: "#2c7a7b",

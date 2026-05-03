@@ -1,3 +1,4 @@
+import { MedicineForm } from "@/utils/medicinep";
 import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -5,7 +6,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 
 interface MedicineStep3Props {
   form: any;
-  update: (key: string, value: string) => void;
+  update: (key: keyof MedicineForm, value: string) => void;
   onBack: () => void;
   onPredict: () => void;
 }
@@ -130,7 +131,7 @@ const CATEGORIES: Category[] = [
 const computeScore = (symptoms: Symptom[], values: Severity[]): string => {
   const raw = symptoms.reduce(
     (sum, s, i) => sum + SEVERITY_FRACTION[values[i] ?? "none"] * s.max,
-    0
+    0,
   );
   const maxRaw = symptoms.reduce((sum, s) => sum + s.max, 0);
   if (maxRaw === 0) return "0.00";
@@ -167,10 +168,10 @@ const SeverityPicker = ({
           active && value === "none"
             ? COLORS.midForest
             : active && value === "mild"
-            ? "#c8860a"
-            : active && value === "severe"
-            ? "#a93226"
-            : COLORS.softGreen;
+              ? "#c8860a"
+              : active && value === "severe"
+                ? "#a93226"
+                : COLORS.softGreen;
 
         return (
           <TouchableOpacity
@@ -253,7 +254,11 @@ const CategoryCard = ({
 
         <View style={{ flex: 1 }}>
           <Text
-            style={{ fontSize: 15, fontWeight: "800", color: COLORS.deepForest }}
+            style={{
+              fontSize: 15,
+              fontWeight: "800",
+              color: COLORS.deepForest,
+            }}
           >
             {category.label}
           </Text>
@@ -274,7 +279,11 @@ const CategoryCard = ({
             }}
           >
             <Text
-              style={{ fontSize: 12, fontWeight: "700", color: COLORS.deepForest }}
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                color: COLORS.deepForest,
+              }}
             >
               {score}
             </Text>
@@ -320,16 +329,25 @@ const CategoryCard = ({
               }}
             >
               <Text
-                style={{ fontSize: 12, color: COLORS.textMid, fontWeight: "600" }}
+                style={{
+                  fontSize: 12,
+                  color: COLORS.textMid,
+                  fontWeight: "600",
+                }}
               >
                 {category.label} Score
               </Text>
               <Text
-                style={{ fontSize: 13, fontWeight: "800", color: COLORS.deepForest }}
+                style={{
+                  fontSize: 13,
+                  fontWeight: "800",
+                  color: COLORS.deepForest,
+                }}
               >
                 {score}
                 <Text style={{ fontWeight: "400", color: COLORS.textLight }}>
-                  {" "}/ 10
+                  {" "}
+                  / 10
                 </Text>
               </Text>
             </View>
@@ -373,8 +391,8 @@ export default function MedicineStep3({
       CATEGORIES.map((cat) => [
         cat.key,
         cat.symptoms.map((): Severity => "none"),
-      ])
-    )
+      ]),
+    ),
   );
 
   /**
@@ -384,11 +402,15 @@ export default function MedicineStep3({
   useEffect(() => {
     CATEGORIES.forEach((cat) => {
       const score = computeScore(cat.symptoms, allValues[cat.key]);
-      update(cat.key, score);
+      update(cat.key as keyof MedicineForm, score);
     });
   }, [allValues]);
 
-  const handleSelect = (categoryKey: string, index: number, value: Severity) => {
+  const handleSelect = (
+    categoryKey: string,
+    index: number,
+    value: Severity,
+  ) => {
     setAllValues((prev) => {
       const updated = [...prev[categoryKey]];
       updated[index] = value;
@@ -400,7 +422,7 @@ export default function MedicineStep3({
     computeScore(cat.symptoms, allValues[cat.key]);
 
   const completedCount = CATEGORIES.filter((cat) =>
-    allValues[cat.key].some((v) => v !== "none")
+    allValues[cat.key].some((v) => v !== "none"),
   ).length;
 
   return (
@@ -429,9 +451,11 @@ export default function MedicineStep3({
           >
             Rate your symptoms
           </Text>
-          <Text style={{ color: COLORS.mintLeaf, fontSize: 12, lineHeight: 18 }}>
-            Tap each category and select None, Mild, or Severe for each
-            symptom. Scores are calculated automatically.
+          <Text
+            style={{ color: COLORS.mintLeaf, fontSize: 12, lineHeight: 18 }}
+          >
+            Tap each category and select None, Mild, or Severe for each symptom.
+            Scores are calculated automatically.
           </Text>
         </View>
       </View>
@@ -494,7 +518,11 @@ export default function MedicineStep3({
           }}
         >
           <Text
-            style={{ color: COLORS.deepForest, fontWeight: "700", fontSize: 15 }}
+            style={{
+              color: COLORS.deepForest,
+              fontWeight: "700",
+              fontSize: 15,
+            }}
           >
             Back
           </Text>
@@ -511,7 +539,9 @@ export default function MedicineStep3({
             alignItems: "center",
           }}
         >
-          <Text style={{ color: COLORS.white, fontWeight: "700", fontSize: 15 }}>
+          <Text
+            style={{ color: COLORS.white, fontWeight: "700", fontSize: 15 }}
+          >
             Predict Herbs
           </Text>
         </TouchableOpacity>
