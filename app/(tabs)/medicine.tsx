@@ -1,24 +1,31 @@
-import { Picker } from "@react-native-picker/picker";
 import React, { useState } from "react";
-import {
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import MedicineResults from "../../components/MedicineResults";
 import MedicineStep1 from "../../components/MedicineStep1";
 import MedicineStep2 from "../../components/MedicineStep2";
 import MedicineStep3 from "../../components/MedicineStep3";
-import MedicineResults from "../../components/MedicineResults";
+import { MedicineForm, PredictedHerbs } from "../../utils/medicinep";
+
+const T = {
+  leaf: "#22543d",
+  leafMid: "#276749",
+  inkDark: "#1a202c",
+  inkLight: "#718096",
+  white: "#ffffff",
+  bg: "#f1f8e9",
+  border: "#e2e8f0",
+  sage: "#48bb78",
+};
+
+const STEPS = ["Personal", "Dosha", "Symptoms"];
 
 export default function MedicineScreen() {
   const [step, setStep] = useState(1);
 
-  const [form, setForm] = useState<FormData>({
+  const [form, setForm] = useState<MedicineForm>({
     disease: "",
     agni: "",
-    region: "",
+    region: "western",
     gender: "male",
     age: "",
     vata: "",
@@ -33,17 +40,15 @@ export default function MedicineScreen() {
 
   const [predictedHerbs, setPredictedHerbs] = useState<PredictedHerbs>(null);
 
-  const update = (key: keyof FormData, value: string) => {
-    setForm({ ...form, [key]: value });
+  const update = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key as keyof MedicineForm]: value }));
   };
 
   const predictHerbs = async () => {
     try {
       const response = await fetch("http://localhost:5000/predict", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           disease_category: form.disease,
           agni_state: form.agni,
@@ -74,7 +79,13 @@ export default function MedicineScreen() {
   const renderStep = () => {
     switch (step) {
       case 1:
-        return <MedicineStep1 form={form} update={update} onNext={() => setStep(2)} />;
+        return (
+          <MedicineStep1
+            form={form}
+            update={update}
+            onNext={() => setStep(2)}
+          />
+        );
       case 2:
         return (
           <MedicineStep2
@@ -100,20 +111,167 @@ export default function MedicineScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-[#e6f1e8]"
-      contentContainerStyle={{ padding: 20 }}
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
     >
-      {/* HEADER */}
-      <Text className="text-2xl font-bold text-[#1b5e20] text-center mb-3">
-        🌿 Herb Recommendation
-      </Text>
-      <Text className="text-center text-gray-600 mb-6">
-        Step {step} of 3
-      </Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerIconRing}>
+          <Text style={styles.headerEmoji}>🌿</Text>
+        </View>
+        <Text style={styles.headerTitle}>Herb Recommendation</Text>
+        <Text style={styles.headerSub}>
+          AI-assisted herb guidance based on Ayurvedic principles
+        </Text>
+      </View>
 
+      {/* Step indicator */}
+      <View style={styles.stepRow}>
+        {STEPS.map((label, i) => {
+          const idx = i + 1;
+          const done = step > idx;
+          const active = step === idx;
+          return (
+            <React.Fragment key={label}>
+              <View style={styles.stepItem}>
+                <View
+                  style={[
+                    styles.stepCircle,
+                    done && styles.stepCircleDone,
+                    active && styles.stepCircleActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stepNum,
+                      (done || active) && { color: T.white },
+                    ]}
+                  >
+                    {done ? "✓" : idx}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.stepLabel,
+                    active && { color: T.leaf, fontWeight: "700" },
+                    done && { color: T.leafMid },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </View>
+              {i < STEPS.length - 1 && (
+                <View
+                  style={[
+                    styles.stepLine,
+                    step > i + 1 && { backgroundColor: T.sage },
+                  ]}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </View>
+
+      {/* Step content */}
       {renderStep()}
 
-      {step === 3 && <MedicineResults predictedHerbs={predictedHerbs} />}
+      {/* Results (shown after predict on step 3) */}
+      {step === 3 && predictedHerbs && (
+        <MedicineResults predictedHerbs={predictedHerbs} />
+      )}
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: T.bg,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 48,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  headerIconRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: T.white,
+    borderWidth: 2,
+    borderColor: T.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  headerEmoji: { fontSize: 34 },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: T.inkDark,
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: T.inkLight,
+    textAlign: "center",
+    lineHeight: 19,
+    paddingHorizontal: 16,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  stepItem: {
+    alignItems: "center",
+    gap: 5,
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: T.white,
+    borderWidth: 2,
+    borderColor: T.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepCircleActive: {
+    backgroundColor: T.leaf,
+    borderColor: T.leaf,
+  },
+  stepCircleDone: {
+    backgroundColor: T.leafMid,
+    borderColor: T.leafMid,
+  },
+  stepNum: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: T.inkLight,
+  },
+  stepLabel: {
+    fontSize: 10,
+    color: T.inkLight,
+    fontWeight: "500",
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: T.border,
+    marginBottom: 16,
+    marginHorizontal: 4,
+  },
+});
