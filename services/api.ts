@@ -2,6 +2,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL as QA_API_BASE_URL } from '../config';
+import { PREDICTION_API_URL } from '../config';
 
 // Single source of truth — update config.ts when ngrok URL changes
 const API_BASE_URL = QA_API_BASE_URL;
@@ -17,7 +18,7 @@ const api = axios.create({
 import { authService, userService, predictionService } from './supabase';
 
 
-const API_URL=""
+const API_URL= PREDICTION_API_URL ;
 
 export const diseaseApi = {
   predict: async (payload: {

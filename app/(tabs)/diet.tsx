@@ -6,6 +6,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { DIET_API_URL } from "../../config";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -346,7 +347,7 @@ export default function DietScreen() {
         meal_category: formData.meal_category,
         diet_preference: formData.diet_preference,
       };
-      const response = await fetch("http://192.168.8.102:5001/predict_diet", {
+      const response = await fetch(`${DIET_API_URL}/predict_diet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

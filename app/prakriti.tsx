@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { storage, authService } from '../services/supabase';
+import { userService, authService } from '../services/supabase';
 
 const QUESTIONS = [
   {
@@ -281,18 +281,33 @@ const DOSHA_INFO = {
     element: 'Air + Space',
     characteristics: 'Creative, energetic, quick thinking',
     traits: ['Light body', 'Dry skin', 'Variable appetite', 'Light sleeper', 'Active mind'],
+    healthRisks: ['Anxiety & insomnia', 'Constipation & bloating', 'Joint pain & dryness', 'Irregular digestion', 'Fatigue & low stamina'],
+    dietFavor: ['Warm, cooked meals', 'Ghee & sesame oil', 'Sweet fruits (banana, mango)', 'Root vegetables', 'Warm spiced milk'],
+    dietAvoid: ['Raw salads & cold foods', 'Dry snacks & crackers', 'Caffeine & alcohol', 'Carbonated drinks', 'Frozen or processed food'],
+    lifestyle: ['Maintain regular daily routine', 'Warm oil self-massage (abhyanga)', 'Gentle yoga & meditation', 'Sleep before 10 PM', 'Avoid overexertion'],
+    commonDiseases: ['Arthritis', 'Anxiety disorders', 'IBS / Constipation', 'Insomnia', 'Osteoporosis'],
   },
   pitta: {
     icon: '🔥',
     element: 'Fire + Water',
     characteristics: 'Intelligent, focused, ambitious',
     traits: ['Medium build', 'Warm skin', 'Strong appetite', 'Moderate sleep', 'Sharp mind'],
+    healthRisks: ['Acidity & heartburn', 'Skin rashes & inflammation', 'Anger & irritability', 'Liver & gallbladder issues', 'Fever & infections'],
+    dietFavor: ['Cooling foods (cucumber, coconut)', 'Sweet & bitter tastes', 'Fresh fruits & vegetables', 'Coconut oil & ghee', 'Coriander & fennel'],
+    dietAvoid: ['Spicy & fried foods', 'Sour & fermented foods', 'Alcohol & red meat', 'Tomatoes & vinegar', 'Excess caffeine'],
+    lifestyle: ['Avoid midday sun & heat', 'Cooling meditation practices', 'Moderate exercise (swimming, walking)', 'Take breaks to avoid burnout', 'Express emotions constructively'],
+    commonDiseases: ['Gastritis / Peptic ulcer', 'Skin disorders (acne, psoriasis)', 'Hypertension', 'Liver disease', 'Inflammatory conditions'],
   },
   kapha: {
     icon: '🌊',
     element: 'Earth + Water',
     characteristics: 'Calm, stable, compassionate',
     traits: ['Sturdy body', 'Smooth skin', 'Steady appetite', 'Deep sleep', 'Calm mind'],
+    healthRisks: ['Weight gain & obesity', 'Congestion & mucus buildup', 'Lethargy & depression', 'High cholesterol', 'Sluggish metabolism'],
+    dietFavor: ['Light, warm, dry foods', 'Bitter & pungent tastes', 'Legumes & lentils', 'Honey & spices (ginger, pepper)', 'Leafy greens'],
+    dietAvoid: ['Heavy & oily foods', 'Dairy & sweets', 'Cold & frozen foods', 'Red meat', 'Overeating / emotional eating'],
+    lifestyle: ['Daily vigorous exercise', 'Wake up early (before 6 AM)', 'Stimulating & social activities', 'Dry brushing before shower', 'Avoid daytime napping'],
+    commonDiseases: ['Type 2 diabetes', 'Obesity', 'Respiratory conditions (asthma)', 'Heart disease', 'Hypothyroidism'],
   },
 };
 
@@ -302,6 +317,14 @@ export default function PrakritiScreen() {
   const [showHelp, setShowHelp] = useState(false);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<number, { dosha: string; weight: number }>>({});
+  const [result, setResult] = useState<null | {
+    dominant: string;
+    vata: string;
+    pitta: string;
+    kapha: string;
+    confidence: string;
+  }>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleAnswer = (dosha: string, weight: number) => {
     const newAnswers = { ...answers, [currentQ]: { dosha, weight } };
@@ -346,33 +369,164 @@ export default function PrakritiScreen() {
       confidence: confidence > 0.2 ? 'HIGH' : confidence > 0.1 ? 'MODERATE' : 'LOW',
     };
 
+    setSaving(true);
     try {
       const user = await authService.currentUser();
       if (user) {
-        await storage.savePrakriti(user.id, prakriti);
+        await userService.savePrakriti(user.id, prakriti);
       }
     } catch (e) {
-      console.log('Error saving prakriti:', e);
+      console.error('Error saving prakriti:', e);
+    } finally {
+      setSaving(false);
     }
 
-    const info = DOSHA_INFO[dominant];
-    const confidenceEmoji = prakriti.confidence === 'HIGH' ? '✅' : prakriti.confidence === 'MODERATE' ? '⚠️' : '❓';
-    
-    Alert.alert(
-      `Your Prakriti: ${dominant.toUpperCase()} ${info.icon}`,
-      `${info.element}\n\n${info.characteristics}\n\nKey traits:\n• ${info.traits.join('\n• ')}\n\nConfidence: ${prakriti.confidence} ${confidenceEmoji}`,
-      [
-        {
-          text: 'Start Prediction',
-          onPress: () => router.push({ pathname: '/prediction', params: { prakriti: JSON.stringify(prakriti) } } as any),
-        },
-      ]
-    );
+    setResult(prakriti);
   };
 
   const goBack = () => {
     if (currentQ > 0) setCurrentQ(currentQ - 1);
   };
+
+  if (saving) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#f1f8e9', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+        <ActivityIndicator size="large" color="#2d5016" />
+        <Text style={{ fontSize: 16, color: '#2d5016', fontWeight: '600' }}>Saving your Prakriti…</Text>
+      </View>
+    );
+  }
+
+  if (result) {
+    const dominant = result.dominant as keyof typeof DOSHA_INFO;
+    const info = DOSHA_INFO[dominant];
+    const color = DOSHA_COLORS[dominant];
+    const confidenceEmoji = result.confidence === 'HIGH' ? '✅' : result.confidence === 'MODERATE' ? '⚠️' : '❓';
+    const scores = [
+      { label: 'Vata', value: parseFloat(result.vata), color: DOSHA_COLORS.vata },
+      { label: 'Pitta', value: parseFloat(result.pitta), color: DOSHA_COLORS.pitta },
+      { label: 'Kapha', value: parseFloat(result.kapha), color: DOSHA_COLORS.kapha },
+    ];
+
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.introContent}>
+        {/* Header */}
+        <View style={[styles.resultHeader, { borderBottomColor: color }]}>
+          <Text style={styles.introEmoji}>{info.icon}</Text>
+          <Text style={styles.introTitle}>Your Prakriti</Text>
+          <Text style={[styles.resultDoshaName, { color }]}>{dominant.toUpperCase()}</Text>
+          <Text style={styles.doshaCharacteristics}>{info.characteristics}</Text>
+          <Text style={styles.resultConfidence}>{confidenceEmoji} Confidence: {result.confidence}</Text>
+        </View>
+
+        {/* Dosha Score Bars */}
+        <View style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>Dosha Composition</Text>
+          {scores.map((s) => (
+            <View key={s.label} style={{ marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: s.color }}>{s.label}</Text>
+                <Text style={{ fontSize: 13, color: '#555' }}>{Math.round(s.value * 100)}%</Text>
+              </View>
+              <View style={{ height: 8, backgroundColor: '#e0e0e0', borderRadius: 4, overflow: 'hidden' }}>
+                <View style={{ width: `${s.value * 100}%`, height: '100%', backgroundColor: s.color, borderRadius: 4 }} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Health Risks */}
+        <View style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>⚠️ Health Vulnerabilities</Text>
+          {info.healthRisks.map((r, i) => (
+            <View key={i} style={styles.healthRow}>
+              <View style={[styles.healthDot, { backgroundColor: color }]} />
+              <Text style={styles.healthText}>{r}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Common Diseases */}
+        <View style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>🏥 Commonly Associated Conditions</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {info.commonDiseases.map((d, i) => (
+              <View key={i} style={[styles.tag, { backgroundColor: color + '22', borderColor: color }]}>
+                <Text style={[styles.tagText, { color }]}>{d}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Diet to Favor */}
+        <View style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>✅ Foods to Favor</Text>
+          {info.dietFavor.map((f, i) => (
+            <View key={i} style={styles.healthRow}>
+              <Text style={{ color: '#4caf50', marginRight: 8, fontSize: 14 }}>●</Text>
+              <Text style={styles.healthText}>{f}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Diet to Avoid */}
+        <View style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>❌ Foods to Avoid</Text>
+          {info.dietAvoid.map((f, i) => (
+            <View key={i} style={styles.healthRow}>
+              <Text style={{ color: '#ef5350', marginRight: 8, fontSize: 14 }}>●</Text>
+              <Text style={styles.healthText}>{f}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Lifestyle */}
+        <View style={styles.infoCard}>
+          <Text style={styles.sectionTitle}>🧘 Lifestyle Recommendations</Text>
+          {info.lifestyle.map((l, i) => (
+            <View key={i} style={styles.healthRow}>
+              <View style={[styles.healthDot, { backgroundColor: color }]} />
+              <Text style={styles.healthText}>{l}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Actions */}
+        <TouchableOpacity
+          style={styles.startBtn}
+          onPress={() => router.push({ pathname: '/prediction', params: { prakriti: JSON.stringify(result) } } as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.startBtnText}>Start Disease Prediction</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.retakeBtn}
+          onPress={() => {
+            setResult(null);
+            setAnswers({});
+            setCurrentQ(0);
+            setShowIntro(false);
+          }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="refresh" size={16} color="#2d5016" />
+          <Text style={styles.retakeBtnText}>Retake Assessment</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.skipBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.skipBtnText}>Go Back to Home</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    );
+  }
 
   if (showIntro) {
     return (
@@ -392,15 +546,23 @@ export default function PrakritiScreen() {
         <Text style={styles.sectionTitle}>The Three Doshas</Text>
 
         {Object.entries(DOSHA_INFO).map(([dosha, info]) => (
-          <View key={dosha} style={styles.doshaCard}>
+          <View key={dosha} style={[styles.doshaCard, { borderLeftWidth: 4, borderLeftColor: DOSHA_COLORS[dosha as keyof typeof DOSHA_COLORS] }]}>
             <View style={styles.doshaHeader}>
               <Text style={styles.doshaEmoji}>{info.icon}</Text>
               <View style={styles.doshaHeaderText}>
-                <Text style={styles.doshaName}>{dosha.toUpperCase()}</Text>
+                <Text style={[styles.doshaName, { color: DOSHA_COLORS[dosha as keyof typeof DOSHA_COLORS] }]}>{dosha.toUpperCase()}</Text>
                 <Text style={styles.doshaElement}>{info.element}</Text>
               </View>
             </View>
             <Text style={styles.doshaCharacteristics}>{info.characteristics}</Text>
+            <View style={styles.introHealthDivider} />
+            <Text style={styles.introHealthLabel}>Common Health Issues</Text>
+            {info.healthRisks.slice(0, 3).map((r, i) => (
+              <View key={i} style={styles.introHealthRow}>
+                <View style={[styles.healthDot, { backgroundColor: DOSHA_COLORS[dosha as keyof typeof DOSHA_COLORS] }]} />
+                <Text style={styles.introHealthText}>{r}</Text>
+              </View>
+            ))}
           </View>
         ))}
 
@@ -607,4 +769,18 @@ const styles = StyleSheet.create({
   modalDoshaElement: { fontSize: 14, color: '#777', marginBottom: 8 },
   modalDoshaDesc: { fontSize: 14, color: '#666', marginBottom: 12, fontStyle: 'italic' },
   modalDoshaTrait: { fontSize: 13, color: '#555', marginBottom: 4, lineHeight: 18 },
+  resultHeader: { alignItems: 'center', marginBottom: 24, paddingBottom: 20, borderBottomWidth: 2 },
+  resultDoshaName: { fontSize: 32, fontWeight: 'bold', marginBottom: 4 },
+  resultConfidence: { fontSize: 13, color: '#777', marginTop: 6 },
+  healthRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
+  healthDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5, marginRight: 10 },
+  healthText: { fontSize: 14, color: '#444', flex: 1, lineHeight: 20 },
+  tag: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  tagText: { fontSize: 12, fontWeight: '600' },
+  retakeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 16, borderRadius: 12, borderWidth: 2, borderColor: '#2d5016', backgroundColor: '#fff', marginBottom: 12 },
+  retakeBtnText: { fontSize: 15, fontWeight: '700', color: '#2d5016' },
+  introHealthDivider: { height: 1, backgroundColor: '#e8f5e9', marginVertical: 12 },
+  introHealthLabel: { fontSize: 12, fontWeight: '700', color: '#888', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
+  introHealthRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
+  introHealthText: { fontSize: 13, color: '#555', flex: 1, lineHeight: 18 },
 });

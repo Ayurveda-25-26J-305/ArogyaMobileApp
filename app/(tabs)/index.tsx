@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { storage, authService } from '../../services/supabase';
 
@@ -10,9 +10,11 @@ export default function HomeScreen() {
   const [historyCount, setHistoryCount] = useState(0);
   const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const loadData = async () => {
     try {
@@ -91,11 +93,20 @@ export default function HomeScreen() {
             { icon: 'analytics', title: 'Disease Prediction', desc: 'AI-powered health analysis', route: '/prediction' },
             { icon: 'medkit', title: 'Medicine Recommendations', desc: 'Personalized herbal remedies', route: '/(tabs)/medicine' },
             { icon: 'nutrition', title: 'Diet Plans', desc: 'Ayurvedic meal suggestions', route: '/(tabs)/diet' },
+            { icon: 'chatbubbles', title: 'Ayurveda Q&A', desc: 'Ask your Ayurvedic health questions', route: '/(tabs)/qa' },
           ].map((item, i) => (
             <TouchableOpacity
               key={i}
               style={styles.featureCard}
-              onPress={() => router.push(item.route as any)}
+              onPress={() => {
+                if (item.route === '/prediction') {
+                  prakriti
+                    ? router.push({ pathname: '/prediction', params: { prakriti: JSON.stringify(prakriti) } } as any)
+                    : router.push('/prakriti' as any);
+                } else {
+                  router.push(item.route as any);
+                }
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.featureIconWrap}>

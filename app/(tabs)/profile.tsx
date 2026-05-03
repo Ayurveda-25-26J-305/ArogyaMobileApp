@@ -1,9 +1,9 @@
 // app/(tabs)/profile.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authService, userService, predictionService } from '../../services/supabase';
 import DoshaChart from '../../components/DoshaChart';
@@ -18,9 +18,11 @@ export default function ProfileScreen() {
     current_season: string;
   } | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const loadData = async () => {
     try {
