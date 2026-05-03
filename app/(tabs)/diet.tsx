@@ -1,12 +1,14 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
   ActivityIndicator, StyleSheet, Platform, Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { DIET_API_URL } from "../../config";
+import { userService, authService } from "../../services/supabase";
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -185,56 +187,45 @@ function RasaTag({ rasa }: { rasa: string }) {
   );
 }
 
-function NutrientRow({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
-  return (
-    <View style={s.nutRow}>
-      <View style={[s.nutDot, { backgroundColor: color }]} />
-      <Text style={s.nutLabel}>{label}</Text>
-      <Text style={s.nutValue}>{value} <Text style={s.nutUnit}>{unit}</Text></Text>
-    </View>
-  );
-}
-
 // ─── PDF Builder ──────────────────────────────────────────────────────────────
 function buildPDF(result: ResultData, formData: FormData): string {
   const date = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-  const top = result.meal_options.find(m => m.is_top) ?? result.meal_options[0];
   const bmiColor = result.bmi_category === "Normal" ? "#2d6a4f"
     : result.bmi_category === "Underweight" ? "#b08d57"
     : result.bmi_category === "Overweight" ? "#c07a30" : "#b03030";
 
-  const mealOptionsHTML = result.meal_options.map((opt, idx) => `
-    <div style="margin-bottom:20px;border:1px solid ${opt.is_top ? "#2d6a4f" : "#e4e0d8"};border-radius:10px;overflow:hidden;${opt.is_top ? "box-shadow:0 2px 8px rgba(45,106,79,0.15)" : ""}">
-      <div style="padding:10px 16px;background:${opt.is_top ? "#2d6a4f" : "#f4f1eb"};display:flex;justify-content:space-between;align-items:center">
+  const mealOptionsHTML = result.meal_options.map((opt) => `
+    <div style="margin-bottom:20px;border:1px solid ${opt.is_top ? "#2d6a4f" : "#e4e0d8"};border-radius:10px;overflow:hidden;">
+      <div style="padding:10px 16px;background:${opt.is_top ? "#2d6a4f" : "#f4f1eb"};">
         <span style="font-weight:700;color:${opt.is_top ? "#fff" : "#1a1a1a"};font-size:14px">${opt.is_top ? "⭐ " : ""}Meal Option ${opt.option_number}${opt.is_top ? " — Top Recommendation" : ""}</span>
-        <span style="background:${opt.is_top ? "rgba(255,255,255,0.2)" : "#e4e0d8"};color:${opt.is_top ? "#fff" : "#3a3a3a"};padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600">Score: ${opt.suitability_score}/100</span>
+        <span style="float:right;background:${opt.is_top ? "rgba(255,255,255,0.2)" : "#e4e0d8"};color:${opt.is_top ? "#fff" : "#3a3a3a"};padding:3px 10px;border-radius:99px;font-size:12px;">Score: ${opt.suitability_score}/100</span>
       </div>
       <div style="padding:14px 16px">
         <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
           <thead><tr style="background:#f4f1eb">
-            <th style="padding:8px;text-align:left;font-size:11px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.8px">Dish</th>
-            <th style="padding:8px;text-align:left;font-size:11px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.8px">Rasa (Taste)</th>
-            <th style="padding:8px;text-align:left;font-size:11px;color:#7a7a7a;text-transform:uppercase;letter-spacing:0.8px">Guna (Quality)</th>
+            <th style="padding:8px;text-align:left;font-size:11px;color:#7a7a7a;">Dish</th>
+            <th style="padding:8px;text-align:left;font-size:11px;color:#7a7a7a;">Rasa (Taste)</th>
+            <th style="padding:8px;text-align:left;font-size:11px;color:#7a7a7a;">Guna (Quality)</th>
           </tr></thead>
           <tbody>${opt.dishes.map((d, i) => `
             <tr style="background:${i % 2 === 0 ? "#fff" : "#faf8f4"};border-bottom:1px solid #e4e0d8">
-              <td style="padding:8px 8px;font-size:13px;color:#1a1a1a;font-weight:500">${d.dish}</td>
-              <td style="padding:8px 8px;font-size:12px;color:#2d6a4f">${d.rasa}</td>
-              <td style="padding:8px 8px;font-size:12px;color:#6b4c2a">${d.guna}</td>
+              <td style="padding:8px;font-size:13px;font-weight:500">${d.dish}</td>
+              <td style="padding:8px;font-size:12px;color:#2d6a4f">${d.rasa}</td>
+              <td style="padding:8px;font-size:12px;color:#6b4c2a">${d.guna}</td>
             </tr>`).join("")}
           </tbody>
         </table>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:${opt.is_top ? "12px" : "0"}">
-          ${[{ l: "Calories", v: opt.calories, u: "kcal", c: "#b03030" }, { l: "Protein", v: opt.protein, u: "g", c: "#2d6a4f" }, { l: "Carbs", v: opt.carbs, u: "g", c: "#b08d57" }, { l: "Fats", v: opt.fats, u: "g", c: "#6b4c2a" }].map(({ l, v, u, c }) => `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:${opt.is_top && opt.reasons.length > 0 ? "12px" : "0"}">
+          ${[{ l:"Calories",v:opt.calories,u:"kcal",c:"#b03030"},{l:"Protein",v:opt.protein,u:"g",c:"#2d6a4f"},{l:"Carbs",v:opt.carbs,u:"g",c:"#b08d57"},{l:"Fats",v:opt.fats,u:"g",c:"#6b4c2a"}].map(({l,v,u,c})=>`
             <div style="background:${c}12;border:1px solid ${c}40;border-radius:8px;padding:10px;text-align:center">
               <div style="font-size:20px;font-weight:800;color:${c}">${v}</div>
-              <div style="font-size:10px;color:#7a7a7a;margin-top:2px">${u} · ${l}</div>
+              <div style="font-size:10px;color:#7a7a7a">${u} · ${l}</div>
             </div>`).join("")}
         </div>
         ${opt.is_top && opt.reasons.length > 0 ? `
           <div style="background:#f0f7f3;border-left:3px solid #2d6a4f;padding:12px;border-radius:0 8px 8px 0;margin-top:12px">
-            <div style="font-size:11px;font-weight:700;color:#2d6a4f;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Why we recommend this meal</div>
-            ${opt.reasons.map(r => `<div style="font-size:12px;color:#3a3a3a;margin-bottom:4px">• ${r.charAt(0).toUpperCase() + r.slice(1)}</div>`).join("")}
+            <div style="font-size:11px;font-weight:700;color:#2d6a4f;text-transform:uppercase;margin-bottom:8px">Why we recommend this meal</div>
+            ${opt.reasons.map(r=>`<div style="font-size:12px;color:#3a3a3a;margin-bottom:4px">• ${r.charAt(0).toUpperCase()+r.slice(1)}</div>`).join("")}
           </div>` : ""}
       </div>
     </div>`).join("");
@@ -246,53 +237,43 @@ function buildPDF(result: ResultData, formData: FormData): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/>
   <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;background:#faf8f4;color:#1a1a1a}
   .page{max-width:820px;margin:0 auto}.banner{background:#1a3a2a;padding:36px 44px 32px}
-  .accent{height:3px;background:#b08d57;margin-bottom:24px}
-  .h1{font-size:28px;color:#faf8f4;font-weight:bold;text-align:center;letter-spacing:-0.5px}
+  .h1{font-size:28px;color:#faf8f4;font-weight:bold;text-align:center}
   .sub{font-size:12px;color:#a8d5b5;text-align:center;margin-top:6px;font-style:italic}
   .meta{font-size:10px;color:#6b9a7a;text-align:center;margin-top:4px}
   .content{padding:32px 44px}.sec{margin-bottom:28px}
   .sh{display:flex;align-items:center;gap:8px;margin-bottom:14px}
   .sl{width:3px;height:18px;background:#2d6a4f;border-radius:2px}
   .st{font-size:11px;font-weight:700;color:#2d6a4f;text-transform:uppercase;letter-spacing:1.2px}
-  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e4e0d8;border-radius:10px;overflow:hidden}
-  .pcol{padding:0}.prow{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e4e0d8}
-  .pcol:first-child .prow{border-right:1px solid #e4e0d8}
-  .pl{font-size:12px;color:#7a7a7a}.pv{font-size:12px;font-weight:600;color:#1a1a1a}
-  .bmi{display:inline-flex;align-items:center;gap:14px;border:2px solid ${bmiColor};border-radius:12px;padding:14px 22px;margin-top:12px;background:${bmiColor}0d}
-  .bmin{font-size:40px;font-weight:800;color:${bmiColor};line-height:1}
-  .bmiu{font-size:12px;color:#7a7a7a}.bmic{font-size:14px;font-weight:700;color:${bmiColor}}
-  .tdee-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
-  .tbox{border:1px solid #e4e0d8;border-radius:8px;padding:12px;text-align:center}
-  .tv{font-size:18px;font-weight:700;color:#1a3a2a}.tu{font-size:10px;color:#7a7a7a;margin-top:2px}
   .foot{background:#1a3a2a;color:#6b9a7a;font-size:10px;text-align:center;padding:14px;margin-top:32px}
   </style></head><body><div class="page">
-  <div class="banner"><div class="accent"/>
-    <div class="h1">Arogya — Ayurvedic Diet Plan Report</div>
+  <div class="banner">
+    <div class="h1">Arogya — Ayurvedic Diet Plan</div>
     <div class="sub">Personalised Dietary Recommendation · Rooted in Ayurvedic Wisdom</div>
-    <div class="meta">Generated on ${date} &nbsp;·&nbsp; Arogya Research System</div>
+    <div class="meta">Generated on ${date}</div>
   </div>
   <div class="content">
     <div class="sec">
       <div class="sh"><div class="sl"></div><span class="st">Patient Profile</span></div>
-      <div class="pgrid">
-        <div class="pcol">
-          ${[["Age", `${formData.age} years`], ["Gender", formData.gender], ["Weight", `${formData.weight} kg`], ["Height", `${formData.height} cm`]].map(([l, v]) => `<div class="prow"><span class="pl">${l}</span><span class="pv">${v}</span></div>`).join("")}
-        </div>
-        <div class="pcol">
-          ${[["Activity Level", formData.activity_level], ["Dosha", formData.dosha], ["Condition", formData.disease], ["Diet", formData.diet_preference]].map(([l, v]) => `<div class="prow"><span class="pl">${l}</span><span class="pv">${v}</span></div>`).join("")}
-        </div>
-      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e4e0d8;border-radius:10px;overflow:hidden">
+        ${[["Age",`${formData.age} yrs`],["Gender",formData.gender],["Weight",`${formData.weight} kg`],["Height",`${formData.height} cm`],["Activity",formData.activity_level],["Dosha",formData.dosha],["Condition",formData.disease],["Diet",formData.diet_preference]].map(([l,v],i)=>`
+        <tr style="background:${i%2===0?"#faf8f4":"#fff"};border-bottom:1px solid #e4e0d8">
+          <td style="padding:10px 14px;font-size:12px;color:#7a7a7a;width:40%">${l}</td>
+          <td style="padding:10px 14px;font-size:12px;font-weight:600">${v}</td>
+        </tr>`).join("")}
+      </table>
     </div>
     <div class="sec">
       <div class="sh"><div class="sl"></div><span class="st">Health Metrics</span></div>
-      <div class="bmi">
-        <div><span class="bmin">${result.bmi}</span><span class="bmiu"> kg/m²</span></div>
-        <div><div class="bmic">${result.bmi_category.toUpperCase()}</div><div style="font-size:11px;color:#7a7a7a;margin-top:2px">BMI Category</div></div>
+      <div style="display:inline-flex;align-items:center;gap:14px;border:2px solid ${bmiColor};border-radius:12px;padding:14px 22px;margin-bottom:14px">
+        <span style="font-size:40px;font-weight:800;color:${bmiColor}">${result.bmi}</span>
+        <div><div style="font-size:14px;font-weight:700;color:${bmiColor}">${result.bmi_category.toUpperCase()}</div><div style="font-size:10px;color:#7a7a7a">kg/m²</div></div>
       </div>
-      <div class="tdee-grid">
-        <div class="tbox"><div class="tv">${result.tdee}</div><div class="tu">kcal/day · TDEE</div></div>
-        <div class="tbox"><div class="tv">${result.target_calories}</div><div class="tu">kcal · ${result.meal_category} Target</div></div>
-        <div class="tbox"><div class="tv">${result.dosha}</div><div class="tu">Dominant Dosha</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        ${[["TDEE",`${result.tdee} kcal/day`],[`${result.meal_category} Target`,`${result.target_calories} kcal`],["Dosha",result.dosha]].map(([l,v])=>`
+        <div style="border:1px solid #e4e0d8;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:#1a3a2a">${v}</div>
+          <div style="font-size:10px;color:#7a7a7a;margin-top:2px">${l}</div>
+        </div>`).join("")}
       </div>
     </div>
     <div class="sec">
@@ -304,7 +285,7 @@ function buildPDF(result: ResultData, formData: FormData): string {
       <div style="display:flex;flex-wrap:wrap;gap:6px">${avoidHTML}</div>
     </div>
   </div>
-  <div class="foot">This report is for wellness guidance only. Consult a qualified Ayurvedic physician before making dietary changes. · AArogya Research System</div>
+  <div class="foot">For wellness guidance only. Consult a qualified Ayurvedic physician before making dietary changes. · Arogya Research System</div>
   </div></body></html>`;
 }
 
@@ -320,6 +301,31 @@ export default function DietScreen() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfDone, setPdfDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prakritiLoaded, setPrakritiLoaded] = useState(false);
+
+  // ── Auto-load dominant dosha from Supabase Prakriti ──────────────────────
+  useFocusEffect(
+    useCallback(() => {
+      loadPrakriti();
+    }, [])
+  );
+
+  const loadPrakriti = async () => {
+    try {
+      const user = await authService.currentUser();
+      if (!user) return;
+      const prakriti = await userService.getPrakriti(user.id);
+      if (prakriti?.dominant) {
+        const dominant = prakriti.dominant.charAt(0).toUpperCase() + prakriti.dominant.slice(1);
+        if (DOSHAS.includes(dominant)) {
+          setFormData(f => ({ ...f, dosha: dominant }));
+          setPrakritiLoaded(true);
+        }
+      }
+    } catch (e) {
+      console.log("Could not load prakriti for diet screen:", e);
+    }
+  };
 
   const set = (key: keyof FormData) => (val: string) => {
     setFormData(f => ({ ...f, [key]: val }));
@@ -337,14 +343,14 @@ export default function DietScreen() {
     setLoading(true); setError(null);
     try {
       const payload = {
-        age: parseInt(formData.age),
-        gender: formData.gender.toLowerCase(),
-        weight_kg: parseFloat(formData.weight),
-        height_cm: parseFloat(formData.height),
+        age:            parseInt(formData.age),
+        gender:         formData.gender.toLowerCase(),
+        weight_kg:      parseFloat(formData.weight),
+        height_cm:      parseFloat(formData.height),
         activity_level: formData.activity_level,
-        disease: formData.disease,
-        dosha: formData.dosha,
-        meal_category: formData.meal_category,
+        disease:        formData.disease,
+        dosha:          formData.dosha,
+        meal_category:  formData.meal_category,
         diet_preference: formData.diet_preference,
       };
       const response = await fetch(`${DIET_API_URL}/predict_diet`, {
@@ -372,13 +378,19 @@ export default function DietScreen() {
     if (step === 3) { handleGenerate(); return; }
     setStep(n => n + 1);
   };
+
   const handleBack = () => {
     setError(null);
     if (step === 4) { setStep(3); setResult(null); return; }
     setStep(n => Math.max(n - 1, 0));
   };
+
   const handleReset = () => {
-    setFormData({ age: "", gender: "", weight: "", height: "", activity_level: "", disease: "", dosha: "", meal_category: "", diet_preference: "" });
+    setFormData(f => ({
+      age: "", gender: "", weight: "", height: "", activity_level: "",
+      disease: "", meal_category: "", diet_preference: "",
+      dosha: f.dosha, // keep the prakriti dosha
+    }));
     setResult(null); setError(null); setStep(0); setPdfDone(false);
   };
 
@@ -403,7 +415,6 @@ export default function DietScreen() {
     }
   }, [result, formData]);
 
-  const topMeal = result?.meal_options.find(m => m.is_top);
   const bmiColor = result?.bmi_category === "Normal" ? T.leaf
     : result?.bmi_category === "Underweight" ? T.gold
     : result?.bmi_category === "Overweight" ? "#c07a30" : T.errorRed;
@@ -453,7 +464,7 @@ export default function DietScreen() {
           <SelectPill label="Activity Level" value={formData.activity_level} options={ACTIVITIES} onChange={set("activity_level")} />
           <View style={s.infoBox}>
             <Ionicons name="information-circle-outline" size={14} color={T.leaf} />
-            <Text style={s.infoText}>BMI and daily energy requirement (TDEE) are calculated automatically from your inputs.</Text>
+            <Text style={s.infoText}>BMI and daily energy requirement (TDEE) are calculated automatically.</Text>
           </View>
         </Card>
       )}
@@ -463,7 +474,32 @@ export default function DietScreen() {
         <Card accent={T.gold}>
           <SectionLabel icon="🩺">Health Profile</SectionLabel>
           <SelectPill label="Disease Condition" value={formData.disease} options={DISEASES} onChange={set("disease")} />
-          <SelectPill label="Dominant Dosha" value={formData.dosha} options={DOSHAS} onChange={set("dosha")} />
+
+          {/* Dosha — pre-filled from Prakriti with a badge if auto-loaded */}
+          <View style={s.fg}>
+            <View style={s.doshaLabelRow}>
+              <Text style={s.fl}>Dominant Dosha</Text>
+              {prakritiLoaded && (
+                <View style={s.prakritiTag}>
+                  <Ionicons name="checkmark-circle" size={11} color={T.leaf} />
+                  <Text style={s.prakritiTagText}>From your Prakriti</Text>
+                </View>
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
+              <View style={s.pr}>
+                {DOSHAS.map(opt => (
+                  <TouchableOpacity
+                    key={opt} onPress={() => set("dosha")(opt)}
+                    style={[s.pill, formData.dosha === opt && s.pillOn]}
+                  >
+                    <Text style={[s.pt, formData.dosha === opt && s.ptOn]}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
           {formData.dosha ? (
             <View style={s.doshaBox}>
               <Text style={s.doshaIcon}>
@@ -483,7 +519,7 @@ export default function DietScreen() {
           <SelectPill label="Dietary Preference" value={formData.diet_preference} options={PREFS} onChange={set("diet_preference")} />
           <View style={s.infoBox}>
             <Ionicons name="checkmark-circle-outline" size={14} color={T.leaf} />
-            <Text style={s.infoText}>Your meal plan will include Rasa, Guna, and nutritional values for each recommended dish.</Text>
+            <Text style={s.infoText}>Your meal plan will include Rasa, Guna, and nutritional values for each dish.</Text>
           </View>
         </Card>
       )}
@@ -498,7 +534,7 @@ export default function DietScreen() {
           </View>
           <View style={s.reviewSection}>
             <Text style={s.reviewSectionTitle}>PERSONAL</Text>
-            {[["Age", `${formData.age} years`], ["Gender", formData.gender], ["Weight", `${formData.weight} kg`], ["Height", `${formData.height} cm`], ["Activity", formData.activity_level]].map(([l, v]) => (
+            {[["Age",`${formData.age} years`],["Gender",formData.gender],["Weight",`${formData.weight} kg`],["Height",`${formData.height} cm`],["Activity",formData.activity_level]].map(([l,v]) => (
               <View key={l} style={s.reviewRow}>
                 <Text style={s.reviewLabel}>{l}</Text>
                 <Text style={s.reviewValue}>{v || "—"}</Text>
@@ -507,7 +543,7 @@ export default function DietScreen() {
           </View>
           <View style={[s.reviewSection, { marginTop: 10 }]}>
             <Text style={s.reviewSectionTitle}>HEALTH & MEAL</Text>
-            {[["Condition", formData.disease], ["Dosha", formData.dosha], ["Meal", formData.meal_category], ["Preference", formData.diet_preference]].map(([l, v]) => (
+            {[["Condition",formData.disease],["Dosha",`${formData.dosha}${prakritiLoaded ? " ✓" : ""}`],["Meal",formData.meal_category],["Preference",formData.diet_preference]].map(([l,v]) => (
               <View key={l} style={s.reviewRow}>
                 <Text style={s.reviewLabel}>{l}</Text>
                 <Text style={s.reviewValue}>{v || "—"}</Text>
@@ -540,9 +576,9 @@ export default function DietScreen() {
             </View>
             <View style={s.metricsGrid}>
               {[
-                { label: "TDEE", value: `${result.tdee}`, unit: "kcal/day" },
-                { label: result.meal_category + " Target", value: `${result.target_calories}`, unit: "kcal" },
-                { label: "Dosha", value: result.dosha, unit: "" },
+                { label: "TDEE",                      value: `${result.tdee}`,            unit: "kcal/day" },
+                { label: `${result.meal_category} Target`, value: `${result.target_calories}`, unit: "kcal" },
+                { label: "Dosha",                     value: result.dosha,                unit: "" },
               ].map(({ label, value, unit }) => (
                 <View key={label} style={s.metricBox}>
                   <Text style={s.metricValue}>{value}</Text>
@@ -578,7 +614,6 @@ export default function DietScreen() {
                 <ScoreBadge score={opt.suitability_score} />
               </View>
 
-              {/* Dishes */}
               <Text style={s.dishesLabel}>Dishes & Ayurvedic Classification</Text>
               {opt.dishes.map((d, di) => (
                 <View key={di} style={[s.dishRow, di % 2 === 0 ? s.dishEven : s.dishOdd]}>
@@ -595,15 +630,14 @@ export default function DietScreen() {
                 </View>
               ))}
 
-              {/* Nutrition */}
               <View style={s.nutSection}>
                 <Text style={s.nutTitle}>Nutritional Values</Text>
                 <View style={s.nutGrid}>
                   {[
                     { label: "Calories", value: opt.calories, unit: "kcal", color: T.errorRed },
-                    { label: "Protein", value: opt.protein, unit: "g", color: T.leaf },
-                    { label: "Carbs", value: opt.carbs, unit: "g", color: T.gold },
-                    { label: "Fats", value: opt.fats, unit: "g", color: T.bark },
+                    { label: "Protein",  value: opt.protein,  unit: "g",    color: T.leaf },
+                    { label: "Carbs",    value: opt.carbs,    unit: "g",    color: T.gold },
+                    { label: "Fats",     value: opt.fats,     unit: "g",    color: T.bark },
                   ].map(({ label, value, unit, color }) => (
                     <View key={label} style={[s.nutBox, { borderColor: color + "40" }]}>
                       <Text style={[s.nutBoxVal, { color }]}>{value}</Text>
@@ -614,7 +648,6 @@ export default function DietScreen() {
                 </View>
               </View>
 
-              {/* Top Recommendation Reasons */}
               {opt.is_top && opt.reasons.length > 0 && (
                 <View style={s.reasonBox}>
                   <Text style={s.reasonTitle}>Why we recommend this meal</Text>
@@ -643,17 +676,15 @@ export default function DietScreen() {
             }
           </TouchableOpacity>
 
-          {/* Disclaimer */}
           <View style={s.disclaimer}>
             <Ionicons name="shield-checkmark-outline" size={13} color={T.inkLight} />
             <Text style={s.disclaimerText}>
-              This is a supportive dietary recommendation tool only. Consult a qualified healthcare professional before making major dietary changes.
+              Supportive guidance only. Consult a qualified healthcare professional before making major dietary changes.
             </Text>
           </View>
         </View>
       )}
 
-      {/* Step Dots */}
       {step < 4 && <StepDots current={step} total={4} />}
 
       {/* Navigation */}
@@ -686,7 +717,6 @@ export default function DietScreen() {
           </TouchableOpacity>
         )}
       </View>
-
     </ScrollView>
   );
 }
@@ -695,28 +725,18 @@ export default function DietScreen() {
 const s = StyleSheet.create({
   screen:    { flex: 1, backgroundColor: T.bg },
   sc:        { padding: 16, paddingBottom: 52 },
-
-  // Header
   header:      { alignItems: "center", marginBottom: 20, paddingTop: 8 },
   logoRing:    { width: 72, height: 72, borderRadius: 36, backgroundColor: T.sagePale, alignItems: "center", justifyContent: "center", marginBottom: 10, borderWidth: 1.5, borderColor: T.borderG },
   headerTitle: { fontSize: 24, fontWeight: "800", color: T.forest, letterSpacing: -0.5 },
   headerSub:   { fontSize: 12, color: T.inkLight, marginTop: 3 },
-
-  // Error
   errorBox:  { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: T.redPale, borderWidth: 1, borderColor: T.redSoft, borderRadius: 10, padding: 10, marginBottom: 12 },
   errorText: { flex: 1, fontSize: 13, color: T.errorRed },
-
-  // Card
   card:     { backgroundColor: T.surface, borderRadius: 14, borderWidth: 1, borderColor: T.border, marginBottom: 14, overflow: "hidden", ...Platform.select({ ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }, android: { elevation: 2 } }) },
   cardBar:  { height: 4 },
   cardBody: { padding: 16 },
-
-  // Section Label
   sl:  { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 14 },
   sli: { fontSize: 14 },
   slt: { fontSize: 10, fontWeight: "700", color: T.leaf, textTransform: "uppercase", letterSpacing: 1.2 },
-
-  // Form
   fg:   { marginBottom: 14 },
   fl:   { fontSize: 12, fontWeight: "600", color: T.inkMid, marginBottom: 4 },
   inp:  { borderWidth: 1, borderColor: T.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: T.inkDark, backgroundColor: T.parchment },
@@ -725,24 +745,20 @@ const s = StyleSheet.create({
   pillOn: { borderColor: T.leaf, backgroundColor: T.sagePale },
   pt:   { fontSize: 13, color: T.inkLight, fontWeight: "500" },
   ptOn: { color: T.leaf, fontWeight: "700" },
-
   row2: { flexDirection: "row", marginBottom: 0 },
-
   infoBox:  { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: T.sagePale, borderRadius: 8, padding: 10, marginTop: 4 },
   infoText: { flex: 1, fontSize: 12, color: T.leaf, lineHeight: 17 },
-
+  doshaLabelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  prakritiTag:   { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: T.sagePale, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, borderWidth: 1, borderColor: T.borderG },
+  prakritiTagText: { fontSize: 10, color: T.leaf, fontWeight: "600" },
   doshaBox:  { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: T.goldPale, borderRadius: 8, padding: 10, marginTop: 4, borderWidth: 1, borderColor: T.gold + "50" },
   doshaIcon: { fontSize: 20 },
   doshaDesc: { flex: 1, fontSize: 12, color: T.bark, lineHeight: 17 },
-
-  // Step Dots
   dots:    { flexDirection: "row", justifyContent: "center", gap: 6, marginVertical: 16 },
   dot:     { width: 7, height: 7, borderRadius: 3.5 },
   dDone:   { backgroundColor: T.sage },
   dActive: { backgroundColor: T.leaf, width: 20, borderRadius: 3.5 },
   dIdle:   { backgroundColor: T.border },
-
-  // Review
   reviewHeader:      { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
   reviewBar:         { width: 4, height: 20, borderRadius: 2, backgroundColor: T.leaf },
   reviewTitle:       { fontSize: 15, fontWeight: "700", color: T.inkDark, flex: 1 },
@@ -753,39 +769,28 @@ const s = StyleSheet.create({
   reviewRow:         { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: T.border },
   reviewLabel:       { fontSize: 13, color: T.inkLight },
   reviewValue:       { fontSize: 13, fontWeight: "600", color: T.inkDark },
-
-  // Results
   resultsHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
   resultsBar:    { width: 4, height: 26, borderRadius: 2, backgroundColor: T.leaf },
   resultsTitle:  { fontSize: 18, fontWeight: "800", color: T.inkDark },
-
-  // BMI
   bmiRow:    { flexDirection: "row", alignItems: "flex-end", gap: 14, marginBottom: 12 },
   bmiNum:    { fontSize: 44, fontWeight: "800", lineHeight: 48 },
   bmiUnit:   { fontSize: 12, color: T.inkLight, marginBottom: 6 },
   bmiBadge:  { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, borderWidth: 1.5 },
   bmiCat:    { fontSize: 12, fontWeight: "700", letterSpacing: 0.8 },
   bmiVerify: { fontSize: 10, color: T.inkLight, marginTop: 2 },
-
   metricsGrid: { flexDirection: "row", gap: 8 },
   metricBox:   { flex: 1, backgroundColor: T.parchment, borderRadius: 8, padding: 10, alignItems: "center", borderWidth: 1, borderColor: T.border },
   metricValue: { fontSize: 16, fontWeight: "700", color: T.inkDark },
   metricUnit:  { fontSize: 10, color: T.inkLight },
   metricLabel: { fontSize: 10, color: T.inkLight, marginTop: 2, textAlign: "center" },
-
-  // Foods to Avoid
   avoidWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   avoidPill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 99, backgroundColor: T.redPale, borderWidth: 1, borderColor: T.redSoft },
   avoidText: { fontSize: 12, fontWeight: "500", color: T.errorRed },
-
-  // Meal Options
   mealHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
   mealTitle:  { fontSize: 14, fontWeight: "700", color: T.inkDark },
-
   scoreBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1.5, alignItems: "center" },
   scoreNum:   { fontSize: 14, fontWeight: "800", lineHeight: 18 },
   scoreLabel: { fontSize: 9, fontWeight: "600" },
-
   dishesLabel: { fontSize: 10, fontWeight: "700", color: T.inkLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 },
   dishRow:     { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 8, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: T.border },
   dishEven:    { backgroundColor: T.parchment + "80" },
@@ -793,12 +798,10 @@ const s = StyleSheet.create({
   dishDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: T.sage, marginTop: 6, flexShrink: 0 },
   dishName:    { fontSize: 13, color: T.inkDark, fontWeight: "500", marginBottom: 4, lineHeight: 18 },
   dishTags:    { flexDirection: "row", flexWrap: "wrap", gap: 4 },
-
   rasaTag:  { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, borderWidth: 1 },
   rasaText: { fontSize: 10, fontWeight: "600" },
   gunaTag:  { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, backgroundColor: T.goldPale, borderWidth: 1, borderColor: T.gold + "50" },
   gunaText: { fontSize: 10, color: T.bark, fontWeight: "500" },
-
   nutSection: { marginTop: 12 },
   nutTitle:   { fontSize: 10, fontWeight: "700", color: T.inkLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
   nutGrid:    { flexDirection: "row", gap: 6 },
@@ -806,28 +809,15 @@ const s = StyleSheet.create({
   nutBoxVal:  { fontSize: 16, fontWeight: "800" },
   nutBoxUnit: { fontSize: 9, color: T.inkLight },
   nutBoxLabel:{ fontSize: 9, color: T.inkLight, marginTop: 1 },
-
-  nutRow:   { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: T.border },
-  nutDot:   { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  nutLabel: { flex: 1, fontSize: 13, color: T.inkMid },
-  nutValue: { fontSize: 13, fontWeight: "600", color: T.inkDark },
-  nutUnit:  { fontSize: 11, color: T.inkLight, fontWeight: "400" },
-
-  reasonBox:   { backgroundColor: T.sagePale, borderLeftWidth: 3, borderLeftColor: T.leaf, borderRadius: 0 + 8, padding: 12, marginTop: 12 },
+  reasonBox:   { backgroundColor: T.sagePale, borderLeftWidth: 3, borderLeftColor: T.leaf, borderRadius: 8, padding: 12, marginTop: 12 },
   reasonTitle: { fontSize: 10, fontWeight: "700", color: T.leaf, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 },
   reasonRow:   { flexDirection: "row", alignItems: "flex-start", gap: 6, marginBottom: 4 },
   reasonDot:   { width: 5, height: 5, borderRadius: 2.5, backgroundColor: T.leaf, marginTop: 5, flexShrink: 0 },
   reasonText:  { flex: 1, fontSize: 12, color: T.inkMid, lineHeight: 18 },
-
-  // PDF
   pdfBtn:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: T.forest, borderRadius: 12, paddingVertical: 14, marginBottom: 12, ...Platform.select({ ios: { shadowColor: T.forest, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 }, android: { elevation: 4 } }) },
   pdfText:     { fontSize: 15, fontWeight: "700", color: T.white },
-
-  // Disclaimer
   disclaimer:     { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: T.parchment, borderRadius: 8, padding: 10, marginBottom: 8 },
   disclaimerText: { flex: 1, fontSize: 11, color: T.inkLight, lineHeight: 16 },
-
-  // Navigation
   nav:           { flexDirection: "row", justifyContent: "center", gap: 12, marginTop: 6, marginBottom: 6 },
   btnPrimary:    { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: T.leaf, borderRadius: 12, paddingVertical: 13 },
   btnPrimaryText:{ fontSize: 15, fontWeight: "700", color: T.white },
