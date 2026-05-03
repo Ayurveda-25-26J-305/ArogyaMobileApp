@@ -397,6 +397,104 @@ export const nerService = {
   },
 };
 
+export const chatSessionService = {
+  saveSession: async (
+    userId: string,
+    session: {
+      id: string;
+      title: string;
+      date: string;
+      messageCount: number;
+      messages: any[];
+    },
+  ) => {
+    const { error } = await supabase.from("chat_sessions").upsert(
+      {
+        id: session.id,
+        user_id: userId,
+        title: session.title,
+        date: session.date,
+        message_count: session.messageCount,
+        messages: session.messages,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw error;
+  },
+
+  getSessions: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      date: row.date,
+      messageCount: row.message_count,
+      messages: row.messages,
+    }));
+  },
+
+  deleteSession: async (sessionId: string) => {
+    const { error } = await supabase
+      .from("chat_sessions")
+      .delete()
+      .eq("id", sessionId);
+    if (error) throw error;
+  },
+
+  saveBookmark: async (
+    userId: string,
+    bookmark: {
+      id: string;
+      question: string;
+      answer: string;
+      date: string;
+      detectedLanguage?: string;
+    },
+  ) => {
+    const { error } = await supabase.from("chat_bookmarks").insert({
+      id: bookmark.id,
+      user_id: userId,
+      question: bookmark.question,
+      answer: bookmark.answer,
+      date: bookmark.date,
+      detected_language: bookmark.detectedLanguage ?? null,
+      created_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+  },
+
+  getBookmarks: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("chat_bookmarks")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      question: row.question,
+      answer: row.answer,
+      date: row.date,
+      detectedLanguage: row.detected_language,
+    }));
+  },
+
+  deleteBookmark: async (bookmarkId: string) => {
+    const { error } = await supabase
+      .from("chat_bookmarks")
+      .delete()
+      .eq("id", bookmarkId);
+    if (error) throw error;
+  },
+};
+
 export const storage = {
   savePrakriti: userService.savePrakriti,
   getPrakriti: userService.getPrakriti,
