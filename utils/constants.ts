@@ -358,4 +358,38 @@ export const PRAKRITI_SPECIFIC_ADVICE: Record<string, any> = {
       'Use steam inhalation',
     ],
   },
+  balanced: {
+    general: [
+      'Maintain your regular daily routine',
+      'Eat a varied, fresh seasonal diet',
+      'Practice moderate, consistent exercise',
+      'Get adequate sleep (7–8 hours)',
+      'Adapt your lifestyle with seasonal changes',
+    ],
+    gastritis: [
+      'Eat mindfully at regular times',
+      'Avoid stress eating',
+      'Maintain moderate portions',
+    ],
+    arthritis: [
+      'Stay active with varied exercise',
+      'Maintain a healthy weight',
+      'Include anti-inflammatory spices',
+    ],
+    diabetes: [
+      'Balanced diet with all food groups',
+      'Regular physical activity',
+      'Avoid refined sugars',
+    ],
+    migraine: [
+      'Maintain regular sleep schedule',
+      'Stay well hydrated',
+      'Manage stress proactively',
+    ],
+    asthma: [
+      'Keep a clean living environment',
+      'Avoid known triggers',
+      'Practice breathing exercises daily',
+    ],
+  },
 };
