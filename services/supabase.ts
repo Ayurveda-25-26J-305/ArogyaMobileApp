@@ -429,3 +429,46 @@ export const storage = {
   getHistory: predictionService.getHistory,
   clearHistory: predictionService.clearAll,
 };
+// ═══════════════════════════════════════════════════════════════════════════
+// HERB TREATMENT SERVICE
+// ═══════════════════════════════════════════════════════════════════════════
+const BUCKET_URL =
+  "https://davxldqvxxtejapdjvzn.supabase.co/storage/v1/object/public/herbimages";
+
+export type HerbTreatment = {
+  id: number;
+  herb_name: string;
+  treatment_form: string;
+  sinhala_name: string;
+  english_name: string;
+  sanskrit_name: string;
+  benefit: string;
+  when_to_use: "before" | "after";
+  meal_tip: string;
+  dosage: string;
+  directions: { step: string; text: string }[];
+  image_filename: string;
+  image_url: string;
+};
+
+export async function fetchHerbTreatment(
+  herbName: string,
+  treatmentForm: string,
+): Promise<HerbTreatment | null> {
+  const { data, error } = await supabase
+    .from("herb_treatments")
+    .select("*")
+    .eq("herb_name", herbName)
+    .eq("treatment_form", treatmentForm)
+    .single();
+
+  if (error || !data) {
+    console.error("Supabase herb fetch error:", error?.message);
+    return null;
+  }
+
+  return {
+    ...data,
+    image_url: `${BUCKET_URL}/${data.image_filename}`,
+  } as HerbTreatment;
+}

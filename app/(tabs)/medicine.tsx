@@ -6,6 +6,9 @@ import MedicineStep2 from "../../components/MedicineStep2";
 import MedicineStep3 from "../../components/MedicineStep3";
 import { MedicineForm, PredictedHerbs } from "../../utils/medicinep";
 
+// ── Your local IP from the Flask terminal ─────────────────────
+const API_URL = "http://192.168.1.12:5000";
+
 const T = {
   leaf: "#22543d",
   leafMid: "#276749",
@@ -21,6 +24,8 @@ const STEPS = ["Personal", "Dosha", "Symptoms"];
 
 export default function MedicineScreen() {
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<MedicineForm>({
     disease: "",
@@ -61,39 +66,64 @@ export default function MedicineScreen() {
       pain: "",
     });
     setPredictedHerbs(null);
+    setError(null);
     setStep(1);
   };
 
   const predictHerbs = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch("http://localhost:5000/predict", {
+      // ── map form → what the API expects ──────────────────────
+      const body = {
+        age: parseInt(form.age) || 30,
+        gender: form.gender === "male" ? "M" : "F",
+        agni: form.agni || "manda",
+        diseases: form.disease ? [form.disease] : ["diabetes"],
+        vata: Number(form.vata) || 5,
+        pitta: Number(form.pitta) || 5,
+        kapha: Number(form.kapha) || 5,
+        mucus: Number(form.mucus) || 5,
+        ama: Number(form.ama) || 5,
+        pain: Number(form.pain) || 5,
+        heat: Number(form.heat) || 5,
+        dryness: Number(form.dryness) || 5,
+      };
+
+      console.log("→ Sending:", JSON.stringify(body, null, 2));
+
+      const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          disease_category: form.disease,
-          agni_state: form.agni,
-          geographic_region: form.region,
-          gender: form.gender,
-          age: form.age,
-          vata_score: Number(form.vata || 0),
-          pitta_score: Number(form.pitta || 0),
-          kapha_score: Number(form.kapha || 0),
-          ama_level: Number(form.ama || 0),
-          mucus_level: Number(form.mucus || 0),
-          dryness_level: Number(form.dryness || 0),
-          heat_level: Number(form.heat || 0),
-          pain_level: Number(form.pain || 0),
-        }),
+        body: JSON.stringify(body),
       });
+
+      console.log("← Status:", response.status);
+
       const data = await response.json();
+      console.log("← Data:", JSON.stringify(data, null, 2));
+
+      if (data.error) throw new Error(data.error);
+
+      // ── map API response → PredictedHerbs ────────────────────
       setPredictedHerbs({
-        primary: data.top_3_labels[0],
-        secondary: data.top_3_labels[1],
-        tertiary: data.top_3_labels[2],
+        primary: {
+          name: data.recommended_herb.name,
+          sanskrit: data.recommended_herb.sanskrit,
+          description: data.recommended_herb.description,
+          confidence: data.recommended_herb.confidence,
+          treatmentForm: data.recommended_treatment.form,
+          treatmentDesc: data.recommended_treatment.description,
+          treatmentConf: data.recommended_treatment.confidence,
+        },
+        secondary: data.herb_alternatives?.[0] ?? null,
+        tertiary: data.herb_alternatives?.[1] ?? null,
       });
-    } catch (error) {
-      console.error("Error predicting herbs:", error);
+    } catch (e: any) {
+      console.error("Predict error:", e.message);
+      setError(e.message || "Could not reach server. Check your connection.");
     } finally {
+      setLoading(false);
       setStep(4);
     }
   };
@@ -130,6 +160,7 @@ export default function MedicineScreen() {
         return (
           <HerbResults
             predictedHerbs={predictedHerbs}
+            error={error}
             onBack={() => setStep(3)}
             onRestart={handleRestart}
           />

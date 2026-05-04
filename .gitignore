@@ -3,6 +3,14 @@
 # dependencies
 node_modules/
 
+ayurveda_model.zip
+herb_model.pkl
+le_agni.pkl
+le_treat.pkl
+le_herb.pkl
+Scaler.pkl
+treat_model.pkl
+meta.json
 # Expo
 .expo/
 dist/

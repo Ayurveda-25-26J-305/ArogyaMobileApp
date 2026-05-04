@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -7,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { fetchHerbTreatment, HerbTreatment } from "../services/supabase";
 
 const T = {
   leaf: "#22543d",
@@ -22,163 +24,279 @@ const T = {
   cream: "#faf7f0",
   amber: "#c8860a",
   amberPale: "#fef9e7",
-};
-
-// ── Static herb data (swap with API response later) ───────────────────────────
-const HERB = {
-  englishName: "Bitter Gourd",
-  sinhalaName: "කරවිල",
-  image: {
-    uri: "https://i1.wp.com/nourhealth.sg/wp-content/uploads/2017/10/Bitter-gourd-bitter-melon-slices.jpg?fit=1800%2C1200&ssl=1",
-  },
-  howToUse: [
-    { step: "1", text: "Wash and slice 2–3 fresh bitter gourd pieces." },
-    { step: "2", text: "Boil in 2 cups of water for 10 minutes." },
-    {
-      step: "3",
-      text: "Strain and drink as a warm tea or consume the slices directly.",
-    },
-  ],
-  whenToUse: "before" as "before" | "after",
-  mealTip: "Take 30 minutes before meals on an empty stomach for best results.",
-  dosage: "100 ml decoction, twice daily",
-  benefit:
-    "Balances blood sugar, reduces Pitta, supports digestion and liver function.",
+  blue: "#3182ce",
+  bluePale: "#ebf8ff",
 };
 
 interface HerbResultsProps {
+  predictedHerbs: {
+    primary: {
+      name: string;
+      sanskrit: string;
+      description: string;
+      confidence: number;
+      treatmentForm: string;
+      treatmentDesc: string;
+      treatmentConf: number;
+    };
+    secondary: { name: string; sanskrit: string; confidence: number } | null;
+    tertiary: { name: string; sanskrit: string; confidence: number } | null;
+  } | null;
+  error: string | null;
   onBack: () => void;
   onRestart: () => void;
 }
 
-export default function HerbResults({ onBack, onRestart }: HerbResultsProps) {
-  const isBefore = HERB.whenToUse === "before";
+export default function HerbResults({
+  predictedHerbs,
+  error,
+  onBack,
+  onRestart,
+}: HerbResultsProps) {
+  const [record, setRecord] = useState<HerbTreatment | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  // fetch from Supabase when prediction arrives
+  useEffect(() => {
+    if (!predictedHerbs?.primary) return;
+    const { name, treatmentForm } = predictedHerbs.primary;
+
+    const load = async () => {
+      setLoading(true);
+      setDbError(null);
+      const data = await fetchHerbTreatment(name, treatmentForm);
+      if (!data) {
+        setDbError(`No data found for ${name} + ${treatmentForm}`);
+      } else {
+        setRecord(data);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [predictedHerbs?.primary?.name, predictedHerbs?.primary?.treatmentForm]);
+
+  // ── Error from API ────────────────────────────────────────────
+  if (error) {
+    return (
+      <View style={s.centerBox}>
+        <Text style={s.errorIcon}>⚠️</Text>
+        <Text style={s.errorTitle}>Could not get recommendation</Text>
+        <Text style={s.errorMsg}>{error}</Text>
+        <TouchableOpacity style={s.retryBtn} onPress={onBack}>
+          <Text style={s.retryText}>← Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ── No prediction ─────────────────────────────────────────────
+  if (!predictedHerbs) {
+    return (
+      <View style={s.centerBox}>
+        <Text style={s.errorMsg}>No prediction available.</Text>
+        <TouchableOpacity style={s.retryBtn} onPress={onBack}>
+          <Text style={s.retryText}>← Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ── Loading from Supabase ─────────────────────────────────────
+  if (loading) {
+    return (
+      <View style={s.centerBox}>
+        <ActivityIndicator size="large" color={T.leaf} />
+        <Text style={s.loadingText}>Loading herb details…</Text>
+      </View>
+    );
+  }
+
+  // ── Supabase error ────────────────────────────────────────────
+  if (dbError || !record) {
+    return (
+      <View style={s.centerBox}>
+        <Text style={s.errorIcon}>🌿</Text>
+        <Text style={s.errorTitle}>
+          {predictedHerbs.primary.name.replace(/_/g, " ")}
+        </Text>
+        <Text style={s.errorMsg}>
+          {dbError ?? "Herb details not found in database."}
+        </Text>
+        <TouchableOpacity style={s.retryBtn} onPress={onRestart}>
+          <Text style={s.retryText}> New Assessment</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const pred = predictedHerbs.primary;
+  const isBefore = record.when_to_use === "before";
 
   return (
     <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
+      style={s.screen}
+      contentContainerStyle={s.content}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerIconRing}>
-          <Text style={styles.headerEmoji}>🌿</Text>
+      <View style={s.header}>
+        <View style={s.headerIconRing}>
+          <Text style={s.headerEmoji}>🌿</Text>
         </View>
-        <Text style={styles.headerTitle}>Recommended Herb</Text>
-        <Text style={styles.headerSub}>
+        <Text style={s.headerTitle}>Recommended Herb</Text>
+        <Text style={s.headerSub}>
           Based on your dosha profile, agni state, and symptom assessment
         </Text>
       </View>
 
-      {/* ── Main Herb Card ── */}
-      <View style={styles.card}>
-        <View style={styles.cardStripe} />
+      {/* ── Main Card ─────────────────────────────────────────── */}
+      <View style={s.card}>
+        <View style={s.cardStripe} />
 
-        {/* Image */}
+        {/* Image from Supabase storage */}
         <Image
-          source={HERB.image}
-          style={styles.herbImage}
+          source={{ uri: record.image_url }}
+          style={s.herbImage}
           resizeMode="cover"
         />
 
-        {/* Name block */}
-        <View style={styles.nameBlock}>
-          <Text style={styles.sinhalaName}>{HERB.sinhalaName}</Text>
-          <Text style={styles.englishName}>{HERB.englishName}</Text>
-          <View style={styles.benefitBox}>
-            <Text style={styles.benefitText}>{HERB.benefit}</Text>
-          </View>
+        {/* Names */}
+        <View style={s.nameBlock}>
+          <Text style={s.sinhalaName}>{record.sinhala_name}</Text>
+          <Text style={s.englishName}>{record.english_name}</Text>
+          <Text style={s.sanskrit}>Sanskrit: {record.sanskrit_name}</Text>
+
+          {/* Confidence bar — from model */}
+
+          {/* Benefit — from Supabase */}
         </View>
 
-        <View style={styles.divider} />
+        <View style={s.divider} />
 
-        {/* When to use */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⏰ When to Use</Text>
-          <View
-            style={[
-              styles.whenBadge,
-              {
-                backgroundColor: isBefore ? T.sagePale : T.amberPale,
-                borderColor: isBefore ? T.borderGreen : "#f6d860",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.whenBadgeText,
-                { color: isBefore ? T.leaf : T.amber },
-              ]}
-            >
-              {isBefore ? "🍽️  Before Meals" : "🍽️  After Meals"}
-            </Text>
+        {/* Treatment form — model + Supabase dosage */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}> Treatment Form</Text>
+          <View style={s.treatRow}>
+            <View style={s.treatBadge}>
+              <Text style={s.treatBadgeText}>
+                {pred.treatmentForm.toUpperCase()}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.mealTip}>{HERB.mealTip}</Text>
+          <Text style={s.dosage}> {record.dosage}</Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={s.divider} />
 
-        {/* How to use */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📖 How to Use</Text>
-          {HERB.howToUse.map((item) => (
-            <View key={item.step} style={styles.stepRow}>
-              <View style={styles.stepCircle}>
-                <Text style={styles.stepNum}>{item.step}</Text>
+        {/* When to use — from Supabase */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}> When to Use</Text>
+          <Text style={s.whenText}>
+            {isBefore ? "Take before meals" : "Take after meals"}
+          </Text>
+          <Text style={s.mealTip}>{record.meal_tip}</Text>
+        </View>
+
+        {/* Directions — specific to herb+treatment combo from Supabase */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}> How to Use</Text>
+          {record.directions.map((item) => (
+            <View key={item.step} style={s.stepRow}>
+              <View style={s.stepCircle}>
+                <Text style={s.stepNum}>{item.step}</Text>
               </View>
-              <Text style={styles.stepText}>{item.text}</Text>
+              <Text style={s.stepText}>{item.text}</Text>
             </View>
           ))}
         </View>
-
-        <View style={styles.divider} />
-
-        {/* Dosage */}
-        <View style={styles.dosageRow}>
-          <Text style={styles.dosageIcon}>💊</Text>
-          <View>
-            <Text style={styles.dosageLabel}>Recommended Dosage</Text>
-            <Text style={styles.dosageValue}>{HERB.dosage}</Text>
-          </View>
-        </View>
       </View>
 
+      {/* Alternatives — from model */}
+      {(predictedHerbs.secondary || predictedHerbs.tertiary) && (
+        <View style={s.altCard}>
+          <Text style={s.altTitle}>Alternative Herbs</Text>
+          <Text style={s.altSub}>Other herbs that may suit your profile</Text>
+          {[predictedHerbs.secondary, predictedHerbs.tertiary].map((alt, i) =>
+            alt ? (
+              <View key={i} style={s.altRow}>
+                <View style={s.altRank}>
+                  <Text style={s.altRankText}>{i + 2}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.altName}>{alt.name.replace(/_/g, " ")}</Text>
+                  <Text style={s.altSanskrit}>{alt.sanskrit}</Text>
+                </View>
+              </View>
+            ) : null,
+          )}
+        </View>
+      )}
+
       {/* Disclaimer */}
-      <View style={styles.disclaimer}>
-        <Text style={styles.disclaimerIcon}>⚕️</Text>
-        <Text style={styles.disclaimerText}>
+      <View style={s.disclaimer}>
+        <Text style={s.disclaimerIcon}></Text>
+        <Text style={s.disclaimerText}>
           This recommendation is generated by an AI model trained on Ayurvedic
           data. Always consult a qualified Ayurvedic physician before starting
           any herbal treatment.
         </Text>
       </View>
 
-      {/* Navigation */}
-      <View style={styles.navRow}>
+      {/* Buttons */}
+      <View style={s.navRow}>
         <TouchableOpacity
           onPress={onBack}
           activeOpacity={0.8}
-          style={styles.backBtn}
+          style={s.backBtn}
         >
-          <Text style={styles.backBtnText}>← Back</Text>
+          <Text style={s.backBtnText}>← Back</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onRestart}
           activeOpacity={0.85}
-          style={styles.restartBtn}
+          style={s.restartBtn}
         >
-          <Text style={styles.restartBtnText}>🔄 New Assessment</Text>
+          <Text style={s.restartBtnText}> New Assessment</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: T.bg },
   content: { padding: 20, paddingBottom: 48 },
-
+  centerBox: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
+  loadingText: { marginTop: 16, fontSize: 14, color: T.inkLight },
+  errorIcon: { fontSize: 40, marginBottom: 12 },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: T.inkDark,
+    marginBottom: 8,
+  },
+  errorMsg: {
+    fontSize: 13,
+    color: T.inkLight,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryBtn: {
+    backgroundColor: T.sagePale,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderWidth: 1.5,
+    borderColor: T.borderGreen,
+  },
+  retryText: { color: T.leaf, fontWeight: "700", fontSize: 14 },
   header: { alignItems: "center", marginBottom: 20 },
   headerIconRing: {
     width: 72,
@@ -201,7 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
     color: T.inkDark,
-    letterSpacing: 0.3,
     textAlign: "center",
     marginBottom: 6,
   },
@@ -212,7 +329,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     paddingHorizontal: 16,
   },
-
   card: {
     backgroundColor: T.white,
     borderRadius: 16,
@@ -228,22 +344,40 @@ const styles = StyleSheet.create({
   },
   cardStripe: { height: 5, backgroundColor: T.leaf },
   herbImage: { width: "100%", height: 200 },
-
   nameBlock: { padding: 20, paddingBottom: 16 },
   sinhalaName: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "800",
     color: T.leaf,
-    letterSpacing: 0.5,
     marginBottom: 4,
   },
   englishName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: T.inkMid,
-    marginBottom: 12,
-    letterSpacing: 0.2,
+    fontSize: 17,
+    fontWeight: "700",
+    color: T.inkDark,
+    marginBottom: 2,
   },
+  sanskrit: {
+    fontSize: 13,
+    color: T.inkLight,
+    fontStyle: "italic",
+    marginBottom: 12,
+  },
+  confRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  confLabel: { fontSize: 12, color: T.inkLight },
+  confPct: { fontSize: 12, fontWeight: "700", color: T.leaf },
+  confTrack: {
+    height: 6,
+    backgroundColor: "#e2e8f0",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 14,
+  },
+  confFill: { height: "100%", backgroundColor: T.leaf, borderRadius: 3 },
   benefitBox: {
     backgroundColor: T.sagePale,
     borderRadius: 10,
@@ -252,18 +386,31 @@ const styles = StyleSheet.create({
     borderColor: T.borderGreen,
   },
   benefitText: { fontSize: 13, color: T.leafMid, lineHeight: 20 },
-
   divider: { height: 1, backgroundColor: T.border, marginHorizontal: 20 },
-
   section: { padding: 20 },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: T.inkDark,
     marginBottom: 12,
-    letterSpacing: 0.2,
   },
-
+  treatRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+  treatBadge: {
+    backgroundColor: T.bluePale,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#bee3f8",
+  },
+  treatBadgeText: { fontSize: 14, fontWeight: "800", color: T.blue },
+  treatConf: { fontSize: 12, color: T.inkLight },
+  dosage: { fontSize: 13, fontWeight: "600", color: T.inkDark },
   whenBadge: {
     alignSelf: "flex-start",
     borderRadius: 20,
@@ -274,7 +421,6 @@ const styles = StyleSheet.create({
   },
   whenBadgeText: { fontSize: 14, fontWeight: "700" },
   mealTip: { fontSize: 13, color: T.inkMid, lineHeight: 20 },
-
   stepRow: {
     flexDirection: "row",
     gap: 12,
@@ -292,23 +438,41 @@ const styles = StyleSheet.create({
   },
   stepNum: { color: T.white, fontSize: 12, fontWeight: "800" },
   stepText: { flex: 1, fontSize: 13, color: T.inkMid, lineHeight: 20 },
-
-  dosageRow: {
+  altCard: {
+    backgroundColor: T.white,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: T.border,
+  },
+  altTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: T.inkDark,
+    marginBottom: 4,
+  },
+  altSub: { fontSize: 12, color: T.inkLight, marginBottom: 14 },
+  altRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 20,
-    paddingTop: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderColor: T.border,
   },
-  dosageIcon: { fontSize: 22 },
-  dosageLabel: {
-    fontSize: 12,
-    color: T.inkLight,
-    fontWeight: "600",
-    marginBottom: 3,
+  altRank: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: T.sagePale,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  dosageValue: { fontSize: 14, fontWeight: "700", color: T.inkDark },
-
+  altRankText: { fontSize: 13, fontWeight: "700", color: T.leaf },
+  altName: { fontSize: 14, fontWeight: "600", color: T.inkDark },
+  altSanskrit: { fontSize: 12, color: T.inkLight, fontStyle: "italic" },
+  altConf: { fontSize: 13, fontWeight: "700", color: T.leaf },
   disclaimer: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -322,7 +486,6 @@ const styles = StyleSheet.create({
   },
   disclaimerIcon: { fontSize: 16, marginTop: 1 },
   disclaimerText: { flex: 1, fontSize: 12, color: T.inkLight, lineHeight: 18 },
-
   navRow: { flexDirection: "row", gap: 10 },
   backBtn: {
     flex: 1,
@@ -332,6 +495,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: T.borderGreen,
+  },
+  whenText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: T.white,
+    marginBottom: 6,
   },
   backBtnText: { color: T.leaf, fontWeight: "700", fontSize: 15 },
   restartBtn: {

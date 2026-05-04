@@ -15,7 +15,7 @@ export type MedicineForm = {
 };
 
 export type PredictedHerbs = {
-  primary: string;
+  primary: PredictedHerb;
   secondary: string;
   tertiary: string;
 } | null;
