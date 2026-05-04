@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import HerbResults from "../../components/HerbResult";
 import MedicineStep1 from "../../components/MedicineStep1";
 import MedicineStep2 from "../../components/MedicineStep2";
 import MedicineStep3 from "../../components/MedicineStep3";
 import { MedicineForm, PredictedHerbs } from "../../utils/medicinep";
 
-// ── Your local IP from the Flask terminal ─────────────────────
+// ── Replace with your machine's IPv4 from ipconfig ────────────
 const API_URL = "http://192.168.1.12:5000";
 
 const T = {
@@ -26,11 +26,12 @@ export default function MedicineScreen() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [predictedHerbs, setPredictedHerbs] = useState<PredictedHerbs>(null);
 
   const [form, setForm] = useState<MedicineForm>({
     disease: "",
     agni: "",
-    region: "western",
+    region: "Western",
     gender: "male",
     age: "",
     vata: "",
@@ -43,8 +44,6 @@ export default function MedicineScreen() {
     pain: "",
   });
 
-  const [predictedHerbs, setPredictedHerbs] = useState<PredictedHerbs>(null);
-
   const update = (key: keyof MedicineForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -53,7 +52,7 @@ export default function MedicineScreen() {
     setForm({
       disease: "",
       agni: "",
-      region: "western",
+      region: "Western",
       gender: "male",
       age: "",
       vata: "",
@@ -74,20 +73,20 @@ export default function MedicineScreen() {
     setLoading(true);
     setError(null);
     try {
-      // ── map form → what the API expects ──────────────────────
       const body = {
-        age: parseInt(form.age) || 30,
-        gender: form.gender === "male" ? "M" : "F",
-        agni: form.agni || "manda",
-        diseases: form.disease ? [form.disease] : ["diabetes"],
-        vata: Number(form.vata) || 5,
-        pitta: Number(form.pitta) || 5,
-        kapha: Number(form.kapha) || 5,
-        mucus: Number(form.mucus) || 5,
-        ama: Number(form.ama) || 5,
-        pain: Number(form.pain) || 5,
-        heat: Number(form.heat) || 5,
-        dryness: Number(form.dryness) || 5,
+        disease_category: form.disease || "diabetes",
+        agni_state: form.agni || "Manda Agni",
+        geographic_region: form.region || "Western",
+        gender: form.gender || "male",
+        age: Number(form.age) || 30,
+        vata_score: Number(form.vata) || 5,
+        pitta_score: Number(form.pitta) || 5,
+        kapha_score: Number(form.kapha) || 5,
+        ama_level: Number(form.ama) || 0,
+        mucus_level: Number(form.mucus) || 0,
+        dryness_level: Number(form.dryness) || 0,
+        heat_level: Number(form.heat) || 0,
+        pain_level: Number(form.pain) || 0,
       };
 
       console.log("→ Sending:", JSON.stringify(body, null, 2));
@@ -103,25 +102,18 @@ export default function MedicineScreen() {
       const data = await response.json();
       console.log("← Data:", JSON.stringify(data, null, 2));
 
-      if (data.error) throw new Error(data.error);
+      if (!data.success) throw new Error(data.error ?? "Prediction failed");
 
-      // ── map API response → PredictedHerbs ────────────────────
       setPredictedHerbs({
-        primary: {
-          name: data.recommended_herb.name,
-          sanskrit: data.recommended_herb.sanskrit,
-          description: data.recommended_herb.description,
-          confidence: data.recommended_herb.confidence,
-          treatmentForm: data.recommended_treatment.form,
-          treatmentDesc: data.recommended_treatment.description,
-          treatmentConf: data.recommended_treatment.confidence,
-        },
-        secondary: data.herb_alternatives?.[0] ?? null,
-        tertiary: data.herb_alternatives?.[1] ?? null,
+        primary: data.top_3_labels[0],
+        secondary: data.top_3_labels[1],
+        tertiary: data.top_3_labels[2],
       });
     } catch (e: any) {
       console.error("Predict error:", e.message);
-      setError(e.message || "Could not reach server. Check your connection.");
+      const msg = e.message || "Could not reach server.";
+      setError(msg);
+      Alert.alert("Connection Error", msg);
     } finally {
       setLoading(false);
       setStep(4);
@@ -161,7 +153,10 @@ export default function MedicineScreen() {
           <HerbResults
             predictedHerbs={predictedHerbs}
             error={error}
-            onBack={() => setStep(3)}
+            onBack={() => {
+              setStep(3);
+              setError(null);
+            }}
             onRestart={handleRestart}
           />
         );
@@ -248,6 +243,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: T.bg },
   content: { padding: 20, paddingBottom: 48 },
   contentFull: { flexGrow: 1 },
+
   header: { alignItems: "center", marginBottom: 24 },
   headerIconRing: {
     width: 72,
@@ -280,6 +276,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     paddingHorizontal: 16,
   },
+
   stepRow: {
     flexDirection: "row",
     alignItems: "center",

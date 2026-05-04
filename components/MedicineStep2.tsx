@@ -38,7 +38,7 @@ interface MedicineStep2Props {
   onNext: () => void;
 }
 
-type AgniKey = "sama" | "vishama" | "tikshna" | "manda";
+type AgniKey = "Sama Agni" | "Vishama Agni" | "Tikshna Agni" | "Manda Agni";
 
 type AgniOption = {
   key: AgniKey;
@@ -55,7 +55,7 @@ type AgniOption = {
 // ─── AGNI DATA ────────────────────────────────────────────────────────────────
 const AGNI_OPTIONS: AgniOption[] = [
   {
-    key: "sama",
+    key: "Sama Agni",
     label: "සම අග්නි",
     sanskrit: "Sama Agni",
     icon: "⚖️",
@@ -71,7 +71,7 @@ const AGNI_OPTIONS: AgniOption[] = [
     ],
   },
   {
-    key: "vishama",
+    key: "Vishama Agni",
     label: "විෂම අග්නි",
     sanskrit: "Vishama Agni",
     icon: "💨",
@@ -88,7 +88,7 @@ const AGNI_OPTIONS: AgniOption[] = [
     ],
   },
   {
-    key: "tikshna",
+    key: "Tikshna Agni",
     label: "තික්ෂ්ණ අග්නි",
     sanskrit: "Tikshna Agni",
     icon: "🔥",
@@ -104,7 +104,7 @@ const AGNI_OPTIONS: AgniOption[] = [
     ],
   },
   {
-    key: "manda",
+    key: "Manda Agni",
     label: "මන්ද අග්නි",
     sanskrit: "manda agni",
     icon: "🌊",

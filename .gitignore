@@ -11,6 +11,7 @@ le_herb.pkl
 Scaler.pkl
 treat_model.pkl
 meta.json
+.newapp.py
 # Expo
 .expo/
 dist/

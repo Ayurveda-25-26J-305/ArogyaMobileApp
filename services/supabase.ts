@@ -451,24 +451,39 @@ export type HerbTreatment = {
   image_url: string;
 };
 
+function normalizeHerbName(name: string): string {
+  return name
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join("_");
+}
+
 export async function fetchHerbTreatment(
   herbName: string,
-  treatmentForm: string,
 ): Promise<HerbTreatment | null> {
+  const normalized = normalizeHerbName(herbName);
+  console.log("→ DB query herb_name:", normalized);
+
   const { data, error } = await supabase
     .from("herb_treatments")
     .select("*")
-    .eq("herb_name", herbName)
-    .eq("treatment_form", treatmentForm)
-    .single();
+    .eq("herb_name", normalized)
+    .limit(1);
 
-  if (error || !data) {
-    console.error("Supabase herb fetch error:", error?.message);
+  if (error || !data || data.length === 0) {
+    console.error(
+      "Supabase herb fetch error:",
+      error?.message,
+      "for:",
+      normalized,
+    );
     return null;
   }
 
+  const row = data[0];
+
   return {
-    ...data,
-    image_url: `${BUCKET_URL}/${data.image_filename}`,
+    ...row,
+    image_url: `${BUCKET_URL}/${row.image_filename}`,
   } as HerbTreatment;
 }
