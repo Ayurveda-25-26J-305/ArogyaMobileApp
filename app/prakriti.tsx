@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -401,7 +401,7 @@ export default function PrakritiScreen() {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.introContent}>
         <View style={styles.introHeader}>
-          <Text style={styles.introEmoji}>🌿</Text>
+          <Image source={require('../assets/images/icon.png')} style={styles.introEmoji} />
           <Text style={styles.introTitle}>Dosha Assessment</Text>
           <Text style={styles.introSubtitle}>Identify Your Current Dominant Dosha in 10 Questions</Text>
         </View>
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f8e9' },
   introContent: { padding: 20, paddingTop: 60 },
   introHeader: { alignItems: 'center', marginBottom: 32 },
-  introEmoji: { fontSize: 64, marginBottom: 12 },
+  introEmoji: { width: 110, height: 110, marginBottom: 12 },
   introTitle: { fontSize: 28, fontWeight: 'bold', color: '#1b5e20', marginBottom: 8 },
   introSubtitle: { fontSize: 15, color: '#777', textAlign: 'center' },
   infoCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 24, elevation: 2 },

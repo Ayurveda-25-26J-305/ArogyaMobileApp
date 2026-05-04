@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -944,7 +945,7 @@ export default function QAScreen() {
         <View className="flex-row items-start gap-2">
           {/* Avatar */}
           <View className="w-8 h-8 rounded-full bg-[#e8f5e9] items-center justify-center mt-1 shrink-0">
-            <Ionicons name="leaf" size={16} color="#2d5016" />
+            <Image source={require('../../assets/images/icon.png')} style={{ width: 24, height: 24, borderRadius: 12 }} />
           </View>
 
           <View className="flex-1">
@@ -1663,9 +1664,7 @@ export default function QAScreen() {
       >
         {messages.length === 0 && (
           <View className="items-center px-8 mt-10">
-            <View className="w-20 h-20 rounded-full bg-[#e8f5e9] items-center justify-center mb-4">
-              <Ionicons name="leaf" size={44} color="#2d5016" />
-            </View>
+            <Image source={require('../../assets/images/icon.png')} style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 16 }} />
             <Text className="text-[18px] font-bold text-[#1b5e20] text-center mb-2">
               Ayurveda Q&amp;A
             </Text>
@@ -1698,7 +1697,7 @@ export default function QAScreen() {
           <View className="items-start px-3 mb-4">
             <View className="flex-row items-start gap-2">
               <View className="w-8 h-8 rounded-full bg-[#e8f5e9] items-center justify-center">
-                <Ionicons name="leaf" size={16} color="#2d5016" />
+                <Image source={require('../../assets/images/icon.png')} style={{ width: 24, height: 24, borderRadius: 12 }} />
               </View>
               <View className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex-row items-center gap-2">
                 <ActivityIndicator size="small" color="#558b2f" />

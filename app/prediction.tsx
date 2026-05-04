@@ -10,6 +10,7 @@ import {
   TextInput,
   Modal,
   FlatList,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -462,7 +463,10 @@ export default function PredictionScreen() {
 
               {/* Constitutional Awareness */}
               <View style={styles.doshaImpactCard}>
-                <Text style={styles.doshaImpactTitle}>🌿 Constitutional Analysis</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Image source={require('../assets/images/icon.png')} style={{ width: 28, height: 28 }} />
+                  <Text style={styles.doshaImpactTitle}>Constitutional Analysis</Text>
+                </View>
                 <Text style={styles.doshaImpactSubtitle}>
                   Based on your {prakriti.dominant.toUpperCase()} constitution
                 </Text>

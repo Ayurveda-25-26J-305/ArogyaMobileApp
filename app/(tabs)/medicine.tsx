@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import MedicineStep1 from "../../components/MedicineStep1";
 import MedicineStep2 from "../../components/MedicineStep2";
@@ -104,9 +105,10 @@ export default function MedicineScreen() {
       contentContainerStyle={{ padding: 20 }}
     >
       {/* HEADER */}
-      <Text className="text-2xl font-bold text-[#1b5e20] text-center mb-3">
-        🌿 Herb Recommendation
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+        <Image source={require('../../assets/images/icon.png')} style={{ width: 36, height: 36 }} />
+        <Text className="text-2xl font-bold text-[#1b5e20]">Herb Recommendation</Text>
+      </View>
       <Text className="text-center text-gray-600 mb-6">
         Step {step} of 3
       </Text>

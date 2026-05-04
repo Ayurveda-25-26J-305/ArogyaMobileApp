@@ -22,7 +22,7 @@ typescript
 import React, { useState, useCallback } from "react";
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  ActivityIndicator, StyleSheet, Platform, Alert,
+  ActivityIndicator, StyleSheet, Platform, Alert, Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
@@ -776,9 +776,7 @@ export default function DietScreen() {
 
       {/* ── App Header ─────────────────────────────────────────────────────── */}
       <View style={s.header}>
-        <View style={s.logoRing}>
-          <Ionicons name="leaf" size={32} color={T.leaf} />
-        </View>
+        <Image source={require('../../assets/images/icon.png')} style={s.logoRing} />
         <Text style={s.headerTitle}>Arogya</Text>
         <Text style={s.headerSub}>Personalized Ayurvedic Based Dietary Recommendation</Text>
       </View>
@@ -1155,7 +1153,7 @@ export default function DietScreen() {
 
   {/* Header */}
   <View style={s.glossaryHeader}>
-    <Text style={s.glossaryIcon}>🌿</Text>
+    <Image source={require('../../assets/images/icon.png')} style={s.glossaryIcon} />
     <View>
       <Text style={s.glossaryTitle}>Understanding Your Meal</Text>
       <Text style={s.glossarySubtitle}>Ayurvedic classification guide</Text>
@@ -1610,7 +1608,7 @@ glossaryHeader: {
   padding: 16,
   backgroundColor: "#1a3a2a",
 },
-glossaryIcon:     { fontSize: 28 },
+glossaryIcon:     { width: 44, height: 44 },
 glossaryTitle:    { fontSize: 15, fontWeight: "800", color: "#faf8f4", letterSpacing: -0.3 },
 glossarySubtitle: { fontSize: 11, color: "#a8d5b5", marginTop: 1 },
 glossaryDivider:  { height: 1, backgroundColor: "#e4e0d8" },
