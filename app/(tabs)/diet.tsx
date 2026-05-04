@@ -1,11 +1,10 @@
 typescript
 
 /**
- * DietScreen.tsx
- * ─────────────────────────────────────────────────────────────────────────────
- * AArogya — Ayurvedic Dietary Recommendation Module
+ 
+ * Arogya — Ayurvedic Dietary Recommendation Module
  *
- * HOW THIS SCREEN WORKS (for viva):
+ * HOW THIS SCREEN WORKS:
  *  1. User fills 4 steps: Personal → Health → Meal Preferences → Review
  *  2. On "Generate Plan", we POST to the Flask /predict_diet API
  *  3. The API returns meal options with dish names, rasa, guna, nutrition etc.
@@ -107,7 +106,7 @@ type FormData = {
   diet_preference: string;
 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+//Constants
 const DISEASES   = ["Diabetes", "Gastritis", "Migraine", "Asthma", "Arthritis"];
 const DOSHAS     = ["Vata", "Pitta", "Kapha"];
 const MEALS      = ["Breakfast", "Lunch", "Dinner"];
@@ -153,7 +152,7 @@ const getEnglishName = (dish: string) => {
  * Uses the Mifflin-St Jeor equation to estimate calories burned at rest.
  * Male:   BMR = (10 x weight) + (6.25 x height) - (5 x age) + 5
  * Female: BMR = (10 x weight) + (6.25 x height) - (5 x age) - 161
- * This is referenced in our report as [8] Frankenfield et al. (2005).
+ * This is referenced in report as [8] Frankenfield et al. (2005).
  */
 function calculateBMR(
   age: number,
@@ -238,7 +237,7 @@ function getDishGrams(portionPct: number, totalGrams: number): number {
   return Math.round((portionPct / 100) * totalGrams);
 }
 
-// ─── Small UI Components ──────────────────────────────────────────────────────
+//Small UI Components 
 
 /** Section heading with emoji icon and uppercase label */
 function SectionLabel({ icon, children }: { icon: string; children: string }) {
@@ -605,7 +604,7 @@ function buildPDF(
   </div></body></html>`;
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// Main Screen 
 export default function DietScreen() {
 
   // step: 0=Personal, 1=Health, 2=Meal Preferences, 3=Review, 4=Results
@@ -661,15 +660,15 @@ export default function DietScreen() {
     () => true, // review step is always passable
   ];
 
-  // ── Calculate total meal grams from user's profile (frontend only) ────────
+  // Calculate total meal grams from user's profile 
   // This uses the TDEE + BMI adjustment formula defined above
-  // No changes to the backend pkl model are needed
+
   const totalMealGrams = result
     ? calculateTotalMealGrams(result.tdee, result.bmi_category, result.meal_category)
     : 0;
 
-  // ── API Call: POST user inputs to Flask backend ───────────────────────────
-  // The backend returns meal options; we then calculate gram portions here
+  // API Call: POST user inputs to Flask backend 
+  // The backend returns meal options; calculate gram portions here
   const handleGenerate = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -1014,7 +1013,7 @@ export default function DietScreen() {
 
           {/* ── Foods to Avoid ────────────────────────────────────────────── */}
           <Card accent={T.errorRed}>
-            <SectionLabel icon="🚫">Foods to Avoid — {result.disease}</SectionLabel>
+            <SectionLabel icon="🚫">Food to Avoid — {result.disease}</SectionLabel>
             <View style={s.avoidWrap}>
               {result.foods_to_avoid.map((f, i) => (
                 <View key={i} style={s.avoidPill}>
@@ -1028,7 +1027,7 @@ export default function DietScreen() {
           {result.meal_options.map((opt, idx) => (
             <Card key={idx} accent={opt.is_top ? T.leaf : T.border}>
 
-              {/* Meal title + suitability score badge */}
+              {/* Meal title*/}
               <View style={s.mealHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.mealTitle}>
@@ -1037,7 +1036,6 @@ export default function DietScreen() {
                     {opt.is_top ? "  —  Top Recommendation" : ""}
                   </Text>
                 </View>
-                <ScoreBadge score={opt.suitability_score} />
               </View>
 
               {/* Column headers for the dish table */}
