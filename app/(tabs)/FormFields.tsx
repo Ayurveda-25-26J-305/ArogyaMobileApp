@@ -56,3 +56,7 @@ export const InputField = ({ placeholder, keyboardType, onChangeText }: InputFie
     onChangeText={onChangeText}
   />
 );
+
+export default function FormFields() {
+  return null; // or your actual UI
+}

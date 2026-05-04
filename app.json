@@ -63,7 +63,7 @@
           }
         }
       ],
-      "expo-asset"
+      "expo-asset",
       "expo-speech-recognition"
     ],
     "experiments": {
